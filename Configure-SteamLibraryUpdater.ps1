@@ -143,9 +143,36 @@ function Add-Game {
     
     $installDir = Read-Host "Enter full install directory path"
     if (-not $installDir -or -not (Test-Path $installDir)) {
-        Write-Host "Invalid directory path" -ForegroundColor Red
+        Write-Host "Invalid directory path - directory does not exist" -ForegroundColor Red
         Read-Host "Press Enter to continue"
         return
+    }
+    
+    # Validate it's a directory, not a file
+    if (-not (Test-Path $installDir -PathType Container)) {
+        Write-Host "Invalid path - must be a directory, not a file" -ForegroundColor Red
+        Read-Host "Press Enter to continue"
+        return
+    }
+    
+    # Warn if directory doesn't look like a Steam game directory
+    $steamIndicators = @("*.exe", "*.dll", "steam_appid.txt")
+    $hasIndicators = $false
+    foreach ($pattern in $steamIndicators) {
+        if (Get-ChildItem -Path $installDir -Filter $pattern -File -ErrorAction SilentlyContinue) {
+            $hasIndicators = $true
+            break
+        }
+    }
+    
+    if (-not $hasIndicators) {
+        Write-Host "Warning: This directory doesn't appear to contain game files" -ForegroundColor Yellow
+        $confirm = Read-Host "Continue anyway? (y/N)"
+        if ($confirm -notmatch '^[Yy]') {
+            Write-Host "Cancelled" -ForegroundColor Yellow
+            Read-Host "Press Enter to continue"
+            return
+        }
     }
     
     $processName = Read-Host "Enter game process name (optional, press Enter to skip)"

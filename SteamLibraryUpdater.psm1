@@ -269,9 +269,17 @@ function Update-SteamGame {
     try {
         Write-Log "Starting update for App $AppId to $InstallDir" -Level Info
         
-        # Properly escape the install directory path
-        $escapedInstallDir = $InstallDir.Replace('"', '\"')
-        $arguments = "+force_install_dir `"$escapedInstallDir`" +login anonymous +app_update $AppId validate +quit"
+        # Use array-based arguments to avoid shell interpretation issues
+        $arguments = @(
+            "+force_install_dir"
+            $InstallDir
+            "+login"
+            "anonymous"
+            "+app_update"
+            $AppId
+            "validate"
+            "+quit"
+        )
         $process = Start-Process -FilePath $script:ModuleConfig.SteamCmdPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
         
         if ($process.ExitCode -eq 0) {
@@ -288,11 +296,27 @@ function Update-SteamGame {
         }
         else {
             Write-Log "SteamCMD exited with code: $($process.ExitCode)" -Level Error
+            
+            # Clean up the -new file on failure to prevent false positives
+            $appInfoFile = Join-Path $script:ModuleConfig.AppInfoPath $AppId
+            $appInfoFileNew = "$appInfoFile-new"
+            if (Test-Path $appInfoFileNew) {
+                Remove-Item $appInfoFileNew -Force -ErrorAction SilentlyContinue
+            }
+            
             return $false
         }
     }
     catch {
         Write-Log "Error updating game: $_" -Level Error
+        
+        # Clean up the -new file on failure to prevent false positives
+        $appInfoFile = Join-Path $script:ModuleConfig.AppInfoPath $AppId
+        $appInfoFileNew = "$appInfoFile-new"
+        if (Test-Path $appInfoFileNew) {
+            Remove-Item $appInfoFileNew -Force -ErrorAction SilentlyContinue
+        }
+        
         return $false
     }
 }
