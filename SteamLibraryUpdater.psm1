@@ -190,6 +190,10 @@ function Test-GameNeedsUpdate {
         [string]$AppId
     )
     
+    if ($AppId -notmatch '^\d+$') {
+        Write-Log "Invalid AppId: $AppId. Must be numeric." -Level Error
+        return $false
+    }
     $appInfoFile = Join-Path $script:ModuleConfig.AppInfoPath $AppId
     $appInfoFileNew = "$appInfoFile-new"
     
