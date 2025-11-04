@@ -112,7 +112,19 @@ try {
         
         if ($keepData) {
             # Keep logs and config, remove everything else
-            Get-ChildItem -Path $InstallPath | Where-Object { $_.Name -notin @("Logs", "Config.json", "appinfo") } | Remove-Item -Recurse -Force
+            $itemsToRemove = Get-ChildItem -Path $InstallPath | Where-Object { $_.Name -notin @("Logs", "Config.json", "appinfo") }
+            foreach ($item in $itemsToRemove) {
+                try {
+                    if ($item.PSIsContainer) {
+                        Remove-Item -Path $item.FullName -Recurse -Force -ErrorAction SilentlyContinue
+                    } else {
+                        Remove-Item -Path $item.FullName -Force -ErrorAction SilentlyContinue
+                    }
+                } catch {
+                    Write-Host "  Error removing $($item.FullName): $_" -ForegroundColor Red
+                    $errorOccurred = $true
+                }
+            }
             if (-not $Silent) {
                 Write-Host "  Installation files removed (kept logs and configuration)" -ForegroundColor Green
                 Write-Host "  Remaining files: $InstallPath" -ForegroundColor Cyan
