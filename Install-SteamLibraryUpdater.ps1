@@ -206,7 +206,9 @@ if (-not (Test-Path $steamCmdPath)) {
             
             # Initialize SteamCMD (accept EULA and update)
             Write-Host "  Initializing SteamCMD (this may take a moment)..." -ForegroundColor Yellow
-            $process = Start-Process -FilePath $steamCmdPath -ArgumentList "+quit" -Wait -PassThru -NoNewWindow -RedirectStandardOutput "$env:TEMP\steamcmd_init.log" -RedirectStandardError "$env:TEMP\steamcmd_error.log"
+            $initLog = Join-Path $env:TEMP "steamcmd_init.log"
+            $errorLog = Join-Path $env:TEMP "steamcmd_error.log"
+            $process = Start-Process -FilePath $steamCmdPath -ArgumentList "+quit" -Wait -PassThru -NoNewWindow -RedirectStandardOutput $initLog -RedirectStandardError $errorLog
             
             if ($process.ExitCode -eq 0 -or $process.ExitCode -eq 7) {
                 Write-Host "  SteamCMD initialized successfully!" -ForegroundColor Green
@@ -215,6 +217,10 @@ if (-not (Test-Path $steamCmdPath)) {
                 Write-Host "  Warning: SteamCMD initialization may have encountered issues (exit code: $($process.ExitCode))" -ForegroundColor Yellow
                 Write-Host "  The tool should still work, but check logs if you encounter problems." -ForegroundColor Yellow
             }
+            
+            # Clean up temporary log files
+            Remove-Item $initLog -ErrorAction SilentlyContinue
+            Remove-Item $errorLog -ErrorAction SilentlyContinue
         }
         catch {
             Write-Host "  Error downloading SteamCMD: $_" -ForegroundColor Red

@@ -166,13 +166,14 @@ function Add-Game {
             Write-Host "Found $($availableGames.Count) games not yet monitored:" -ForegroundColor Green
             Write-Host ""
             
-            for ($i = 0; $i -lt [Math]::Min($availableGames.Count, 20); $i++) {
+            $maxDisplayGames = 20
+            for ($i = 0; $i -lt [Math]::Min($availableGames.Count, $maxDisplayGames); $i++) {
                 $game = $availableGames[$i]
                 Write-Host "  [$($i + 1)] $($game.Name) (AppId: $($game.AppId))" -ForegroundColor White
             }
             
-            if ($availableGames.Count -gt 20) {
-                Write-Host "  ... and $($availableGames.Count - 20) more" -ForegroundColor Gray
+            if ($availableGames.Count -gt $maxDisplayGames) {
+                Write-Host "  ... and $($availableGames.Count - $maxDisplayGames) more" -ForegroundColor Gray
             }
             
             Write-Host ""

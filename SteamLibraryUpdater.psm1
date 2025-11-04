@@ -179,7 +179,7 @@ function Get-SteamAppInfo {
         catch {
             if ($attempt -lt $maxAttempts) {
                 $errorMsg = $_.ToString()
-                Write-Log "Attempt $attempt failed to get app info for $AppId : $errorMsg - Retrying in $delay second(s)..." -Level Warning
+                Write-Log "Attempt $attempt failed to get app info for ${AppId}: $errorMsg - Retrying in $delay second(s)..." -Level Warning
                 Start-Sleep -Seconds $delay
                 $delay = [Math]::Min($delay * 2, 8)
             }
@@ -592,11 +592,11 @@ function Get-InstalledSteamGames {
                     if (Test-Path $fullInstallPath) {
                         # Try to find the main executable
                         $exeFiles = Get-ChildItem -Path $fullInstallPath -Filter "*.exe" -File -ErrorAction SilentlyContinue |
-                            Where-Object { $_.Name -notmatch '(unins|crash|setup|installer|launcher)' } |
+                            Where-Object { $_.Name -notmatch '\b(unins|crash|setup|installer|launcher)\b' } |
                             Sort-Object Length -Descending |
                             Select-Object -First 3
                         
-                        $processName = ""
+                        $processName = $null
                         if ($exeFiles) {
                             # Use the first (largest) exe as a guess for the process name
                             $processName = [System.IO.Path]::GetFileNameWithoutExtension($exeFiles[0].Name)
