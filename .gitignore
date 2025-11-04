@@ -1,0 +1,30 @@
+# Steam Library Updater .gitignore
+
+# Configuration files (user-specific)
+Config.json
+
+# Log files
+Logs/
+*.log
+
+# App info cache
+appinfo/
+
+# SteamCMD installation
+steamcmd/
+
+# PowerShell temporary files
+*.ps1xml
+
+# Windows temporary files
+Thumbs.db
+desktop.ini
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Test files
+test*.ps1
+Test*.ps1
