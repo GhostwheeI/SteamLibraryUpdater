@@ -178,7 +178,8 @@ function Get-SteamAppInfo {
         }
         catch {
             if ($attempt -lt $maxAttempts) {
-                Write-Log "Attempt $attempt failed to get app info for ${AppId}: $_. Retrying in $delay second(s)..." -Level Warning
+                $errorMsg = $_
+                Write-Log "Attempt $attempt failed to get app info for $AppId : $errorMsg. Retrying in $delay second(s)..." -Level Warning
                 Start-Sleep -Seconds $delay
                 $delay = [Math]::Min($delay * 2, 8)
             }
