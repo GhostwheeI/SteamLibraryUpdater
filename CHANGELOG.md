@@ -1,0 +1,162 @@
+# Changelog
+
+All notable changes to Steam Library Updater will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [1.0.0] - 2025-11-04
+
+### Added - Major Overhaul
+
+This release represents a complete transformation from a simple batch script to a full-featured PowerShell application.
+
+#### Core Functionality
+- **PowerShell Module** (`SteamLibraryUpdater.psm1`)
+  - Comprehensive game update management system
+  - Configurable settings stored in JSON format
+  - Gaming-aware update logic (pause updates during gaming by default)
+  - Steam process detection
+  - Game process detection
+  - Logging system with daily log rotation
+  - Steam API integration for update checking
+  - SteamCMD integration for game updates
+
+#### Installation & Distribution
+- **Automated Installer** (`Install-SteamLibraryUpdater.ps1`)
+  - One-click installation to Program Files
+  - Windows Task Scheduler integration (runs hourly when Steam is running)
+  - Add/Remove Programs registration
+  - Interactive configuration during setup
+  - SteamCMD detection and installation guidance
+  
+- **Clean Uninstaller** (`Uninstall-SteamLibraryUpdater.ps1`)
+  - Complete removal of all components
+  - Option to preserve logs and configuration
+  - Registry cleanup
+  - Scheduled task removal
+
+#### User Interface
+- **Configuration Tool** (`Configure-SteamLibraryUpdater.ps1`)
+  - Interactive menu-driven interface
+  - Add/remove games from monitoring
+  - Toggle settings (update during gaming, auto-update)
+  - View configuration and logs
+  - Manual update testing
+
+#### Documentation
+- **Comprehensive README** with full feature documentation
+- **Quick Start Guide** for rapid deployment
+- **Examples Document** with 23+ practical usage scenarios
+- **Changelog** for version tracking
+
+#### Configuration System
+- JSON-based configuration file
+- User preferences:
+  - Update during gaming (default: false)
+  - Check interval in minutes (default: 60)
+  - Enable/disable auto-updates (default: true)
+  - Monitored games list with metadata
+  - Last check timestamp
+
+#### Automation
+- Windows Task Scheduler integration
+- Runs automatically when Steam is running
+- Hourly update checks (configurable)
+- Background operation (no user interaction required)
+
+#### Game Management
+- Add games to monitoring with App ID, name, install directory, and process name
+- Remove games from monitoring
+- Support for multiple Steam library locations
+- Per-game metadata tracking
+
+#### Logging
+- Daily log files with timestamps
+- Log levels (Info, Warning, Error)
+- Automatic log rotation
+- Detailed operation logging for troubleshooting
+
+### Changed
+
+- **Complete rewrite** from batch script to PowerShell
+- **Architecture change** from single-shot script to persistent service-like operation
+- **User experience** improved with automated installation and configuration
+
+### Deprecated
+
+- **Batch Script** (`update_game_steam.bat`)
+  - No longer maintained
+  - Replaced by PowerShell module
+  - Kept in repository for reference only
+
+### Migration from Batch Script
+
+If you were using the old batch script:
+
+1. **Install the new version** using `Install-SteamLibraryUpdater.ps1`
+2. **Add your games** using the configuration tool or `Add-MonitoredGame` function
+3. **Configure preferences** for update timing and behavior
+4. **Remove old batch script references** from your automation
+
+The new version provides all the functionality of the old script plus:
+- Automatic scheduling
+- Gaming awareness
+- Configuration management
+- Better logging
+- Easier deployment
+
+## [0.1.0] - Previous
+
+### Original Batch Script Features
+
+- Manual execution required
+- Command-line parameters for App ID and install directory
+- Steam API update checking via curl
+- SteamCMD integration for updates
+- File comparison for change detection
+- Return codes for automation (0 = up-to-date, 1 = updated)
+
+---
+
+## Upgrade Path
+
+### From Batch Script to v1.0.0
+
+**Before:**
+```batch
+update_game_steam.bat 730 "C:\Steam\steamapps\common\Counter-Strike Global Offensive"
+```
+
+**After:**
+```powershell
+# One-time setup
+Install-SteamLibraryUpdater.ps1
+Add-MonitoredGame -AppId "730" -Name "Counter-Strike 2" -InstallDir "C:\Steam\steamapps\common\Counter-Strike Global Offensive" -ProcessName "cs2"
+
+# No manual execution needed - runs automatically!
+```
+
+## Future Roadmap
+
+Potential features for future releases:
+
+- [ ] GUI configuration application
+- [ ] Update notifications (system tray)
+- [ ] Bandwidth throttling options
+- [ ] Multiple Steam library auto-detection
+- [ ] Installed games auto-discovery
+- [ ] Update scheduling by time of day
+- [ ] Update size estimation before downloading
+- [ ] Pause/resume functionality
+- [ ] Email/webhook notifications
+- [ ] Statistics and reporting dashboard
+- [ ] Custom update rules per game
+- [ ] Integration with Steam Web API for better game detection
+
+## Contributing
+
+See [README.md](README.md#contributing) for information on contributing to this project.
+
+## Support
+
+For issues, questions, or feature requests, please open an issue on GitHub.
