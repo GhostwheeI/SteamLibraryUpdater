@@ -5,6 +5,7 @@ This document provides practical examples of using Steam Library Updater.
 ## Table of Contents
 
 - [Basic Installation and Setup](#basic-installation-and-setup)
+- [Automated Game Detection](#automated-game-detection)
 - [Adding Games to Monitor](#adding-games-to-monitor)
 - [Configuration Examples](#configuration-examples)
 - [Manual Operations](#manual-operations)
@@ -30,40 +31,117 @@ cd C:\Users\YourName\Downloads\SteamLibraryUpdater
 # Extract steamcmd.exe to: C:\Program Files\SteamLibraryUpdater\steamcmd\
 ```
 
-### Example 2: Installation with Gaming Updates Enabled
+### Example 2: Installation with Automatic SteamCMD Download
 
 ```powershell
 # Run installer
 .\Install-SteamLibraryUpdater.ps1
 
-# When prompted "Do you want to allow updates while gaming?"
-# Type: y
-# Press: Enter
+# When prompted "Would you like to download and install SteamCMD automatically?"
+# Press: Enter (or type 'y' for Yes)
 
-# This allows updates even while you're playing games
+# The installer will automatically:
+# 1. Download SteamCMD
+# 2. Extract it to the correct location
+# 3. Initialize it for first use
+```
+
+## Automated Game Detection
+
+### Example 3: Auto-Detect Installed Steam Games
+
+```powershell
+Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+
+# Automatically find your Steam installation
+$steamPath = Find-SteamInstallPath
+Write-Host "Steam found at: $steamPath"
+
+# Get all installed games
+$games = Get-InstalledSteamGames
+Write-Host "Found $($games.Count) installed games"
+
+# Display the games
+$games | Select-Object Name, AppId, InstallDir | Format-Table
+```
+
+### Example 4: Quick Add All Games
+
+```powershell
+# Using the interactive configuration tool
+C:\Program Files\SteamLibraryUpdater\Configure-SteamLibraryUpdater.ps1
+
+# Press 6 for "Quick Add All Installed Games"
+# Confirm when prompted
+# All your installed Steam games will be automatically added to monitoring
+```
+
+### Example 5: Search for a Game by Name
+
+```powershell
+Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+
+# Search for a game
+$result = Find-AppIdByName -GameName "Portal"
+
+if ($result) {
+    Write-Host "Found: $($result.Name)"
+    Write-Host "App ID: $($result.AppId)"
+    Write-Host "Type: $($result.Type)"
+}
+```
+
+### Example 6: Get Steam Library Folders
+
+```powershell
+Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+
+# Find Steam installation
+$steamPath = Find-SteamInstallPath
+
+# Get all library folders (including additional drives)
+$libraries = Get-SteamLibraryFolders -SteamPath $steamPath
+
+Write-Host "Steam Library Folders:"
+$libraries | ForEach-Object {
+    Write-Host "  $_"
+}
 ```
 
 ## Adding Games to Monitor
 
-### Example 3: Add Counter-Strike 2
+### Example 7: Using the Interactive Configuration Tool
 
 ```powershell
-# Open PowerShell as Administrator
-cd "C:\Program Files\SteamLibraryUpdater"
-Import-Module .\SteamLibraryUpdater.psm1
+# Run the configuration tool
+C:\Program Files\SteamLibraryUpdater\Configure-SteamLibraryUpdater.ps1
 
-# Add CS2 to monitoring
-Add-MonitoredGame `
-    -AppId "730" `
-    -Name "Counter-Strike 2" `
-    -InstallDir "C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive" `
-    -ProcessName "cs2"
-
-# Verify it was added
-Get-SteamLibraryUpdaterConfig | ConvertTo-Json
+# Press 4 to "Add Game to Monitor"
+# Then select:
+#   Option 1: Auto-detect from installed games (shows a list to choose from)
+#   Option 2: Enter manually (traditional method)
+#   Option 3: Search by name (finds the game via Steam API)
 ```
 
-### Example 4: Add Multiple Games
+### Example 8: Add Counter-Strike 2 (Auto-Detected)
+
+```powershell
+# Using auto-detection - the easy way!
+Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+
+# Get all installed games
+$games = Get-InstalledSteamGames
+
+# Find CS2
+$cs2 = $games | Where-Object { $_.Name -like "*Counter-Strike*" }
+
+# Add it with one command (all info is auto-populated)
+if ($cs2) {
+    Add-MonitoredGame -AppId $cs2.AppId -Name $cs2.Name -InstallDir $cs2.InstallDir -ProcessName $cs2.ProcessName
+}
+```
+
+### Example 9: Add Multiple Games
 
 ```powershell
 Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
@@ -81,35 +159,34 @@ Add-MonitoredGame -AppId "550" -Name "Left 4 Dead 2" -InstallDir "C:\Steam\steam
 Add-MonitoredGame -AppId "620" -Name "Portal 2" -InstallDir "C:\Steam\steamapps\common\Portal 2" -ProcessName "portal2"
 ```
 
-### Example 5: Finding Your Game Install Directory
+### Example 10: Finding Your Game Install Directory
 
 ```powershell
-# Method 1: Use Steam to find the install folder
+# Method 1: Use Auto-Detection (Easiest!)
+Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+$games = Get-InstalledSteamGames
+$games | Select-Object Name, InstallDir | Format-Table -AutoSize
+
+# Method 2: Use Steam Library Folders Discovery
+$steamPath = Find-SteamInstallPath
+$libraries = Get-SteamLibraryFolders -SteamPath $steamPath
+foreach ($lib in $libraries) {
+    Write-Host "Library: $lib" -ForegroundColor Green
+    $commonPath = Join-Path $lib "common"
+    if (Test-Path $commonPath) {
+        Get-ChildItem $commonPath -Directory | Select-Object Name, FullName
+    }
+}
+
+# Method 3: Manual Search (Old Way)
 # 1. Open Steam
 # 2. Right-click the game → Properties → Local Files → Browse
 # 3. Copy the path from File Explorer
-
-# Method 2: Search common locations
-Get-ChildItem "C:\Program Files (x86)\Steam\steamapps\common\" -Directory | Select-Object Name
-
-# Method 3: Check other Steam libraries
-$steamLibraries = @(
-    "C:\Program Files (x86)\Steam\steamapps\common",
-    "D:\SteamLibrary\steamapps\common",
-    "E:\Games\Steam\steamapps\common"
-)
-
-foreach ($lib in $steamLibraries) {
-    if (Test-Path $lib) {
-        Write-Host "Found library: $lib" -ForegroundColor Green
-        Get-ChildItem $lib -Directory | Select-Object Name, FullName
-    }
-}
 ```
 
 ## Configuration Examples
 
-### Example 6: Enable Updates During Gaming
+### Example 11: Enable Updates During Gaming
 
 ```powershell
 Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
@@ -126,7 +203,7 @@ Set-SteamLibraryUpdaterConfig -Config $config
 Write-Host "Updates will now run even while gaming" -ForegroundColor Green
 ```
 
-### Example 7: Change Check Interval to 30 Minutes
+### Example 12: Change Check Interval to 30 Minutes
 
 ```powershell
 Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
@@ -138,7 +215,7 @@ Set-SteamLibraryUpdaterConfig -Config $config
 Write-Host "Update checks will now run every 30 minutes" -ForegroundColor Green
 ```
 
-### Example 8: Temporarily Disable Auto-Updates
+### Example 13: Temporarily Disable Auto-Updates
 
 ```powershell
 Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
@@ -151,7 +228,7 @@ Write-Host "Auto-updates disabled" -ForegroundColor Yellow
 Write-Host "Re-enable by setting EnableAutoUpdate to $true" -ForegroundColor Cyan
 ```
 
-### Example 9: Use the Interactive Configuration Tool
+### Example 14: Use the Interactive Configuration Tool
 
 ```powershell
 # Open PowerShell as Administrator
@@ -168,7 +245,7 @@ C:\Program Files\SteamLibraryUpdater\Configure-SteamLibraryUpdater.ps1
 
 ## Manual Operations
 
-### Example 10: Manual Update Check
+### Example 15: Manual Update Check
 
 ```powershell
 Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
@@ -179,7 +256,7 @@ Start-SteamLibraryUpdate -Verbose
 # This checks all monitored games and updates them if needed
 ```
 
-### Example 11: Check If Steam Is Running
+### Example 16: Check If Steam Is Running
 
 ```powershell
 Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
@@ -191,7 +268,7 @@ if (Test-SteamRunning) {
 }
 ```
 
-### Example 12: Check If Any Game Is Running
+### Example 17: Check If Any Game Is Running
 
 ```powershell
 Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
@@ -203,7 +280,7 @@ if (Test-GameRunning) {
 }
 ```
 
-### Example 13: Check Single Game for Updates
+### Example 18: Check Single Game for Updates
 
 ```powershell
 Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
@@ -218,7 +295,7 @@ if ($needsUpdate) {
 }
 ```
 
-### Example 14: Manually Update a Specific Game
+### Example 19: Manually Update a Specific Game
 
 ```powershell
 Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
@@ -235,7 +312,7 @@ if ($success) {
 
 ## Troubleshooting Scenarios
 
-### Example 15: View Recent Logs
+### Example 20: View Recent Logs
 
 ```powershell
 # View today's log
@@ -249,7 +326,7 @@ if (Test-Path $logFile) {
 }
 ```
 
-### Example 16: View All Monitored Games
+### Example 21: View All Monitored Games
 
 ```powershell
 Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
@@ -269,7 +346,7 @@ foreach ($game in $config.MonitoredGames) {
 }
 ```
 
-### Example 17: Remove a Game from Monitoring
+### Example 22: Remove a Game from Monitoring
 
 ```powershell
 Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
@@ -280,7 +357,7 @@ Remove-MonitoredGame -AppId "730"
 Write-Host "Game removed from monitoring" -ForegroundColor Green
 ```
 
-### Example 18: Verify Scheduled Task
+### Example 23: Verify Scheduled Task
 
 ```powershell
 # Check if the scheduled task exists
@@ -300,7 +377,7 @@ if ($task) {
 }
 ```
 
-### Example 19: Reset Configuration to Defaults
+### Example 24: Reset Configuration to Defaults
 
 ```powershell
 Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
@@ -322,7 +399,7 @@ Write-Host "Configuration reset to defaults" -ForegroundColor Green
 Write-Host "You will need to re-add your games" -ForegroundColor Yellow
 ```
 
-### Example 20: Check SteamCMD Installation
+### Example 25: Check SteamCMD Installation
 
 ```powershell
 $steamCmdPath = "C:\Program Files\SteamLibraryUpdater\steamcmd\steamcmd.exe"
@@ -345,7 +422,7 @@ if (Test-Path $steamCmdPath) {
 
 ## Advanced Examples
 
-### Example 21: Batch Add Games from CSV
+### Example 26: Batch Add Games from CSV
 
 ```powershell
 # Create a CSV file (games.csv) with columns: AppId,Name,InstallDir,ProcessName
@@ -371,7 +448,7 @@ foreach ($game in $games) {
 Write-Host "All games added!" -ForegroundColor Green
 ```
 
-### Example 22: Export Configuration for Backup
+### Example 27: Export Configuration for Backup
 
 ```powershell
 Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
@@ -384,7 +461,7 @@ $config | ConvertTo-Json -Depth 10 | Set-Content $backupPath
 Write-Host "Configuration backed up to: $backupPath" -ForegroundColor Green
 ```
 
-### Example 23: Restore Configuration from Backup
+### Example 28: Restore Configuration from Backup
 
 ```powershell
 Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"

@@ -20,6 +20,9 @@ Steam Library Updater solves these problems by providing a fully automated, conf
 
 - **🎮 Gaming-Aware**: By default, updates are paused when you're playing games to avoid impacting your connection or performance
 - **🔄 Fully Automated**: Runs automatically when Steam is running - no manual intervention needed
+- **🤖 Smart Auto-Detection**: Automatically finds your Steam installation and installed games
+- **📥 One-Click Setup**: Automatically downloads and installs SteamCMD during installation
+- **🎯 Easy Game Management**: Add games via auto-detection, search by name, or add all at once
 - **⚙️ Configurable**: Choose whether to allow updates during gaming, set check intervals, and select which games to monitor
 - **📦 Easy Installation**: Single-script installation that sets up everything including Add/Remove Programs entry
 - **🔔 Scheduled Updates**: Uses Windows Task Scheduler to run checks at regular intervals
@@ -31,8 +34,21 @@ Steam Library Updater solves these problems by providing a fully automated, conf
 - Windows 10 or later
 - PowerShell 5.1 or later
 - Administrator privileges (for installation)
-- [SteamCMD](https://developer.valvesoftware.com/wiki/SteamCMD) (required for game updates)
 - Steam installed on your system
+- [SteamCMD](https://developer.valvesoftware.com/wiki/SteamCMD) (automatically downloaded during installation)
+
+## What's Automated
+
+Steam Library Updater now automates almost everything that previously required manual work:
+
+✅ **SteamCMD Installation**: Automatically downloads and installs SteamCMD during setup  
+✅ **Steam Path Detection**: Automatically finds your Steam installation  
+✅ **Library Detection**: Discovers all your Steam library folders  
+✅ **Game Discovery**: Scans and lists all installed Steam games  
+✅ **App ID Lookup**: Search for games by name to find their App ID  
+✅ **Bulk Operations**: Add all installed games with a single command  
+
+No more manual copying of files, searching for App IDs, or typing long install paths!
 
 ## Installation
 
@@ -53,11 +69,8 @@ Steam Library Updater solves these problems by providing a fully automated, conf
 
 3. **Follow the installation prompts**
    - Choose whether to allow updates during gaming (default: No)
+   - Choose whether to automatically download SteamCMD (recommended: Yes)
    - The installer will set up everything automatically
-
-4. **Download SteamCMD** (if not already installed)
-   - Download from: https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip
-   - Extract to: `C:\Program Files\SteamLibraryUpdater\steamcmd\`
 
 ### What Gets Installed
 
@@ -73,16 +86,31 @@ Steam Library Updater solves these problems by providing a fully automated, conf
 
 ## Configuration
 
-### Initial Setup
+### Automated Setup (Recommended)
 
-After installation, configure which games to monitor:
+The easiest way to configure Steam Library Updater is using the interactive configuration tool:
+
+```powershell
+# Run the configuration tool
+C:\Program Files\SteamLibraryUpdater\Configure-SteamLibraryUpdater.ps1
+```
+
+The configuration tool provides several automated options:
+- **Auto-detect installed games**: Automatically scans your Steam library and lets you select games to monitor
+- **Quick add all games**: Add all installed Steam games to monitoring with one click
+- **Search by name**: Find games by searching the Steam store
+- **Manual entry**: Enter game details manually if needed
+
+### Manual Setup
+
+You can also configure games manually if preferred:
 
 ```powershell
 # Open PowerShell as Administrator
 cd "C:\Program Files\SteamLibraryUpdater"
 Import-Module .\SteamLibraryUpdater.psm1
 
-# Add a game to monitor
+# Add a game to monitor manually
 Add-MonitoredGame -AppId "730" -Name "Counter-Strike 2" -InstallDir "C:\Steam\steamapps\common\Counter-Strike Global Offensive" -ProcessName "cs2"
 
 # View current configuration
@@ -111,14 +139,32 @@ Edit `C:\Program Files\SteamLibraryUpdater\Config.json`:
 
 ### Adding Games
 
-You need the Steam App ID for each game you want to monitor:
+The configuration tool makes adding games easy with several automated methods:
 
-1. Find the App ID from [SteamDB](https://steamdb.info/) or the Steam store URL
-2. Add the game using PowerShell:
+**Option 1: Auto-detect (Easiest)**
+- Run `Configure-SteamLibraryUpdater.ps1`
+- Select option 4 to add a game
+- Choose option 1 to auto-detect from installed games
+- Select from the list of detected games
+
+**Option 2: Quick Add All**
+- Run `Configure-SteamLibraryUpdater.ps1`
+- Select option 6 to add all installed games at once
+
+**Option 3: Search by Name**
+- Run `Configure-SteamLibraryUpdater.ps1`
+- Select option 4 to add a game
+- Choose option 3 to search by name
+- Enter the game name to search
+
+**Option 4: Manual Entry**
+If you prefer manual control, you can still add games using PowerShell:
 
 ```powershell
 Add-MonitoredGame -AppId "440" -Name "Team Fortress 2" -InstallDir "C:\Steam\steamapps\common\Team Fortress 2" -ProcessName "hl2"
 ```
+
+Find Steam App IDs from [SteamDB](https://steamdb.info/) or the Steam store URL if needed.
 
 ### Removing Games
 

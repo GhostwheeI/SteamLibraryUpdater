@@ -174,14 +174,65 @@ Set-ItemProperty -Path $uninstallRegPath -Name "EstimatedSize" -Value ([math]::R
 
 Write-Host "  Added to Programs and Features" -ForegroundColor Green
 
-# Check for SteamCMD
+# Check for SteamCMD and offer to download it
 Write-Host "[6/7] Checking for SteamCMD..." -ForegroundColor Yellow
 $steamCmdPath = Join-Path $InstallPath "steamcmd\steamcmd.exe"
 if (-not (Test-Path $steamCmdPath)) {
     Write-Host ""
     Write-Host "  SteamCMD not found. This is required for automatic updates." -ForegroundColor Yellow
-    Write-Host "  You can download SteamCMD from: https://developer.valvesoftware.com/wiki/SteamCMD" -ForegroundColor Cyan
-    Write-Host "  Extract it to: $InstallPath\steamcmd\" -ForegroundColor Cyan
+    Write-Host ""
+    $downloadSteamCmd = Read-Host "Would you like to download and install SteamCMD automatically? (Y/n)"
+    
+    if ($downloadSteamCmd -notmatch '^[Nn]') {
+        Write-Host "  Downloading SteamCMD..." -ForegroundColor Yellow
+        
+        try {
+            $steamCmdZip = Join-Path $env:TEMP "steamcmd.zip"
+            $steamCmdUrl = "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip"
+            
+            # Download SteamCMD with SSL/TLS verification
+            Invoke-WebRequest -Uri $steamCmdUrl -OutFile $steamCmdZip -UseBasicParsing -ErrorAction Stop
+            
+            # Extract to installation directory
+            $steamCmdDir = Join-Path $InstallPath "steamcmd"
+            if (-not (Test-Path $steamCmdDir)) {
+                New-Item -ItemType Directory -Path $steamCmdDir -Force | Out-Null
+            }
+            
+            Expand-Archive -Path $steamCmdZip -DestinationPath $steamCmdDir -Force
+            Remove-Item $steamCmdZip -Force
+            
+            Write-Host "  SteamCMD downloaded and installed successfully!" -ForegroundColor Green
+            
+            # Initialize SteamCMD (accept EULA and update)
+            Write-Host "  Initializing SteamCMD (this may take a moment)..." -ForegroundColor Yellow
+            $initLog = Join-Path $env:TEMP "steamcmd_init.log"
+            $errorLog = Join-Path $env:TEMP "steamcmd_error.log"
+            $process = Start-Process -FilePath $steamCmdPath -ArgumentList "+quit" -Wait -PassThru -NoNewWindow -RedirectStandardOutput $initLog -RedirectStandardError $errorLog
+            
+            if ($process.ExitCode -eq 0 -or $process.ExitCode -eq 7) {
+                Write-Host "  SteamCMD initialized successfully!" -ForegroundColor Green
+            }
+            else {
+                Write-Host "  Warning: SteamCMD initialization may have encountered issues (exit code: $($process.ExitCode))" -ForegroundColor Yellow
+                Write-Host "  The tool should still work, but check logs if you encounter problems." -ForegroundColor Yellow
+            }
+            
+            # Clean up temporary log files
+            Remove-Item $initLog -ErrorAction SilentlyContinue
+            Remove-Item $errorLog -ErrorAction SilentlyContinue
+        }
+        catch {
+            Write-Host "  Error downloading SteamCMD: $_" -ForegroundColor Red
+            Write-Host "  You can manually download it from: https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip" -ForegroundColor Cyan
+            Write-Host "  Extract it to: $InstallPath\steamcmd\" -ForegroundColor Cyan
+        }
+    }
+    else {
+        Write-Host "  Skipped. You can manually download SteamCMD from:" -ForegroundColor Yellow
+        Write-Host "  https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip" -ForegroundColor Cyan
+        Write-Host "  Extract it to: $InstallPath\steamcmd\" -ForegroundColor Cyan
+    }
     Write-Host ""
 }
 else {

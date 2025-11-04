@@ -178,7 +178,8 @@ function Get-SteamAppInfo {
         }
         catch {
             if ($attempt -lt $maxAttempts) {
-                Write-Log "Attempt $attempt failed to get app info for $AppId: $_. Retrying in $delay second(s)..." -Level Warning
+                $errorMsg = $_.ToString()
+                Write-Log "Attempt $attempt failed to get app info for ${AppId}: $errorMsg - Retrying in $delay second(s)..." -Level Warning
                 Start-Sleep -Seconds $delay
                 $delay = [Math]::Min($delay * 2, 8)
             }
@@ -452,6 +453,229 @@ function Remove-MonitoredGame {
     return $result
 }
 
+function Find-SteamInstallPath {
+    <#
+    .SYNOPSIS
+        Automatically detects the Steam installation path
+    #>
+    [CmdletBinding()]
+    param()
+    
+    # Check registry for Steam installation path
+    $registryPaths = @(
+        "HKCU:\Software\Valve\Steam",
+        "HKLM:\Software\Valve\Steam",
+        "HKLM:\Software\Wow6432Node\Valve\Steam"
+    )
+    
+    foreach ($regPath in $registryPaths) {
+        if (Test-Path $regPath) {
+            $steamPath = (Get-ItemProperty -Path $regPath -Name "SteamPath" -ErrorAction SilentlyContinue).SteamPath
+            if ($steamPath -and (Test-Path $steamPath)) {
+                Write-Log "Found Steam installation at: $steamPath" -Level Info
+                return $steamPath
+            }
+        }
+    }
+    
+    # Check common installation locations
+    $commonPaths = @(
+        "C:\Program Files (x86)\Steam",
+        "C:\Program Files\Steam",
+        "$env:ProgramFiles\Steam",
+        "${env:ProgramFiles(x86)}\Steam"
+    )
+    
+    foreach ($path in $commonPaths) {
+        if (Test-Path $path) {
+            $steamExe = Join-Path $path "steam.exe"
+            if (Test-Path $steamExe) {
+                Write-Log "Found Steam installation at: $path" -Level Info
+                return $path
+            }
+        }
+    }
+    
+    Write-Log "Could not automatically detect Steam installation" -Level Warning
+    return $null
+}
+
+function Get-SteamLibraryFolders {
+    <#
+    .SYNOPSIS
+        Gets all Steam library folders from the Steam configuration
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$SteamPath
+    )
+    
+    if (-not $SteamPath) {
+        $SteamPath = Find-SteamInstallPath
+        if (-not $SteamPath) {
+            return @()
+        }
+    }
+    
+    $libraryFolders = @()
+    
+    # Add the default Steam library
+    $defaultLibrary = Join-Path $SteamPath "steamapps"
+    if (Test-Path $defaultLibrary) {
+        $libraryFolders += $defaultLibrary
+    }
+    
+    # Read libraryfolders.vdf to find additional libraries
+    $libraryVdf = Join-Path $SteamPath "steamapps\libraryfolders.vdf"
+    if (Test-Path $libraryVdf) {
+        try {
+            $content = Get-Content $libraryVdf -Raw
+            
+            # Parse VDF format - look for paths
+            $matches = [regex]::Matches($content, '"path"\s+"([^"]+)"')
+            foreach ($match in $matches) {
+                $libPath = $match.Groups[1].Value
+                # VDF uses escaped backslashes - convert double backslashes to single
+                $libPath = $libPath.Replace('\\', '\')
+                
+                $steamappsPath = Join-Path $libPath "steamapps"
+                if ((Test-Path $steamappsPath) -and ($libraryFolders -notcontains $steamappsPath)) {
+                    $libraryFolders += $steamappsPath
+                }
+            }
+        }
+        catch {
+            Write-Log "Error parsing libraryfolders.vdf: $_" -Level Warning
+        }
+    }
+    
+    return $libraryFolders
+}
+
+function Get-InstalledSteamGames {
+    <#
+    .SYNOPSIS
+        Scans Steam libraries and returns information about installed games
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$SteamPath
+    )
+    
+    if (-not $SteamPath) {
+        $SteamPath = Find-SteamInstallPath
+        if (-not $SteamPath) {
+            Write-Log "Could not find Steam installation" -Level Warning
+            return @()
+        }
+    }
+    
+    $libraries = Get-SteamLibraryFolders -SteamPath $SteamPath
+    $games = @()
+    
+    foreach ($library in $libraries) {
+        # Look for .acf manifest files
+        $manifestFiles = Get-ChildItem -Path $library -Filter "appmanifest_*.acf" -File -ErrorAction SilentlyContinue
+        
+        foreach ($manifest in $manifestFiles) {
+            try {
+                $content = Get-Content $manifest.FullName -Raw
+                
+                # Parse basic ACF format
+                $appId = if ($content -match '"appid"\s+"(\d+)"') { $matches[1] } else { $null }
+                $name = if ($content -match '"name"\s+"([^"]+)"') { $matches[1] } else { $null }
+                $installDir = if ($content -match '"installdir"\s+"([^"]+)"') { $matches[1] } else { $null }
+                
+                if ($appId -and $name -and $installDir) {
+                    $fullInstallPath = Join-Path $library "common\$installDir"
+                    
+                    if (Test-Path $fullInstallPath) {
+                        # Try to find the main executable
+                        $exeFiles = Get-ChildItem -Path $fullInstallPath -Filter "*.exe" -File -ErrorAction SilentlyContinue |
+                            Where-Object { $_.Name -notmatch '\b(unins|crash|setup|installer|launcher)\b' } |
+                            Sort-Object Length -Descending |
+                            Select-Object -First 3
+                        
+                        $processName = $null
+                        if ($exeFiles) {
+                            # Use the first (largest) exe as a guess for the process name
+                            $processName = [System.IO.Path]::GetFileNameWithoutExtension($exeFiles[0].Name)
+                        }
+                        
+                        $games += [PSCustomObject]@{
+                            AppId = $appId
+                            Name = $name
+                            InstallDir = $fullInstallPath
+                            ProcessName = $processName
+                            Library = $library
+                        }
+                    }
+                }
+            }
+            catch {
+                Write-Log "Error parsing manifest $($manifest.Name): $_" -Level Warning
+            }
+        }
+    }
+    
+    return $games
+}
+
+function Find-AppIdByName {
+    <#
+    .SYNOPSIS
+        Searches for a Steam App ID by game name using the Steam Web API
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$GameName
+    )
+    
+    # Validate input to prevent malicious content
+    if ($GameName.Length -gt 200) {
+        Write-Log "Game name too long (max 200 characters)" -Level Warning
+        return $null
+    }
+    
+    try {
+        # Use Steam store search API with proper URL encoding
+        $encodedName = [uri]::EscapeDataString($GameName)
+        $searchUrl = "https://store.steampowered.com/api/storesearch/?term=$encodedName&cc=US&l=english"
+        
+        $response = Invoke-RestMethod -Uri $searchUrl -Method Get -TimeoutSec 30 -ErrorAction Stop
+        
+        # Validate response structure
+        if ($null -eq $response) {
+            Write-Log "Received null response from Steam API" -Level Warning
+            return $null
+        }
+        
+        if ($response.PSObject.Properties['total'] -and $response.total -gt 0 -and 
+            $response.PSObject.Properties['items'] -and $response.items) {
+            # Return the first result as it's usually the most relevant
+            $topResult = $response.items[0]
+            
+            # Validate required properties exist
+            if ($topResult.PSObject.Properties['id'] -and $topResult.PSObject.Properties['name']) {
+                return [PSCustomObject]@{
+                    AppId = $topResult.id
+                    Name = $topResult.name
+                    Type = if ($topResult.PSObject.Properties['type']) { $topResult.type } else { "unknown" }
+                }
+            }
+        }
+        
+        Write-Log "No valid results found for game '$GameName'" -Level Info
+    }
+    catch {
+        Write-Log "Error searching for game '$GameName': $_" -Level Warning
+    }
+    
+    return $null
+}
+
 # Export module functions
 Export-ModuleMember -Function @(
     'Get-SteamLibraryUpdaterConfig',
@@ -462,5 +686,9 @@ Export-ModuleMember -Function @(
     'Update-SteamGame',
     'Start-SteamLibraryUpdate',
     'Add-MonitoredGame',
-    'Remove-MonitoredGame'
+    'Remove-MonitoredGame',
+    'Find-SteamInstallPath',
+    'Get-SteamLibraryFolders',
+    'Get-InstalledSteamGames',
+    'Find-AppIdByName'
 )

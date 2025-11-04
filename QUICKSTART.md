@@ -9,35 +9,23 @@ Get Steam Library Updater up and running in 5 minutes!
 3. **Select** "Run with PowerShell" (as Administrator)
 4. **Follow** the installation prompts
 
-## Step 2: Get SteamCMD
+## Step 2: Configure Your Games
 
-Download SteamCMD (required for updates):
-
-1. Go to: https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip
-2. Extract the ZIP file
-3. Copy `steamcmd.exe` to: `C:\Program Files\SteamLibraryUpdater\steamcmd\`
-
-## Step 3: Configure
-
-Run the configuration tool:
+Run the configuration tool to automatically detect and add your Steam games:
 
 ```powershell
 # Open PowerShell as Administrator
 C:\Program Files\SteamLibraryUpdater\Configure-SteamLibraryUpdater.ps1
 ```
 
-Or manually add games:
+**Easy Options:**
+- Press **4** then **1** to auto-detect installed games (pick from a list)
+- Press **6** to automatically add ALL your installed Steam games at once
+- Press **4** then **3** to search for a game by name
 
-```powershell
-# Open PowerShell as Administrator
-cd "C:\Program Files\SteamLibraryUpdater"
-Import-Module .\SteamLibraryUpdater.psm1
+**Note:** SteamCMD will be automatically downloaded during installation if you chose "Yes" when prompted. If you skipped it, the installer will provide download instructions.
 
-# Example: Add Counter-Strike 2
-Add-MonitoredGame -AppId "730" -Name "Counter-Strike 2" -InstallDir "C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive" -ProcessName "cs2"
-```
-
-## Step 4: Done!
+## Step 3: Done!
 
 That's it! Steam Library Updater will now:
 - ✅ Run automatically when Steam is running
@@ -45,16 +33,20 @@ That's it! Steam Library Updater will now:
 - ✅ Update games when you're not playing (by default)
 - ✅ Log all activities
 
-## Finding Steam App IDs
+## Finding Steam App IDs (Optional - Not Usually Needed)
 
-You need the App ID for each game you want to monitor:
+With the new auto-detection features, you rarely need to look up App IDs manually! But if you need to:
 
+**Method 1: Use the Search Feature**
+- Run the configuration tool and select option 4 (Add Game), then option 3 (Search by name)
+- Enter the game name and it will automatically find the App ID
+
+**Method 2: Manual Lookup**
 1. Go to https://steamdb.info/
 2. Search for your game
 3. The App ID is shown on the game's page
 
-**OR**
-
+**Method 3: From Steam Store**
 1. Go to the game's Steam store page
 2. Look at the URL: `https://store.steampowered.com/app/730/` ← 730 is the App ID
 
