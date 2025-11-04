@@ -112,7 +112,7 @@ try {
         
         if ($keepData) {
             # Keep logs and config, remove everything else
-            Get-ChildItem -Path $InstallPath -Exclude "Logs", "Config.json", "appinfo" | Remove-Item -Recurse -Force
+            Get-ChildItem -Path $InstallPath | Where-Object { $_.Name -notin @("Logs", "Config.json", "appinfo") } | Remove-Item -Recurse -Force
             if (-not $Silent) {
                 Write-Host "  Installation files removed (kept logs and configuration)" -ForegroundColor Green
                 Write-Host "  Remaining files: $InstallPath" -ForegroundColor Cyan

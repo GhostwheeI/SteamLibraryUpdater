@@ -118,10 +118,13 @@ function Test-GameRunning {
     
     $config = Get-SteamLibraryUpdaterConfig
     
+    # Get all processes once for efficiency
+    $allProcesses = Get-Process -ErrorAction SilentlyContinue
+    
     # Check if any monitored game processes are running
     foreach ($game in $config.MonitoredGames) {
         if ($game.ProcessName) {
-            $process = Get-Process -Name $game.ProcessName -ErrorAction SilentlyContinue
+            $process = $allProcesses | Where-Object { $_.ProcessName -eq $game.ProcessName }
             if ($null -ne $process) {
                 Write-Log "Game running: $($game.ProcessName)" -Level Info
                 return $true
@@ -158,6 +161,12 @@ function Get-SteamAppInfo {
         [Parameter(Mandatory)]
         [string]$AppId
     )
+    
+    # Validate AppId is numeric to prevent injection
+    if ($AppId -notmatch '^\d+$') {
+        Write-Log "Invalid AppId format: $AppId. Must be numeric." -Level Error
+        return $null
+    }
     
     try {
         $uri = "https://api.steamcmd.net/v1/info/$AppId"
@@ -196,12 +205,12 @@ function Test-GameNeedsUpdate {
     # Save new app info
     $appInfo | ConvertTo-Json -Depth 10 | Set-Content $appInfoFileNew -Force
     
-    # Compare with previous version
+    # Compare with previous version using hash for better performance
     if (Test-Path $appInfoFile) {
-        $oldContent = Get-Content $appInfoFile -Raw
-        $newContent = Get-Content $appInfoFileNew -Raw
+        $oldHash = (Get-FileHash -Path $appInfoFile -Algorithm SHA256).Hash
+        $newHash = (Get-FileHash -Path $appInfoFileNew -Algorithm SHA256).Hash
         
-        if ($oldContent -eq $newContent) {
+        if ($oldHash -eq $newHash) {
             Write-Log "App $AppId is up-to-date" -Level Info
             Remove-Item $appInfoFileNew -Force
             return $false
@@ -226,6 +235,12 @@ function Update-SteamGame {
         [string]$InstallDir
     )
     
+    # Validate AppId is numeric to prevent command injection
+    if ($AppId -notmatch '^\d+$') {
+        Write-Log "Invalid AppId format: $AppId. Must be numeric." -Level Error
+        return $false
+    }
+    
     if (-not (Test-Path $script:ModuleConfig.SteamCmdPath)) {
         Write-Log "SteamCMD not found at: $($script:ModuleConfig.SteamCmdPath)" -Level Error
         return $false
@@ -239,7 +254,9 @@ function Update-SteamGame {
     try {
         Write-Log "Starting update for App $AppId to $InstallDir" -Level Info
         
-        $arguments = "+force_install_dir `"$InstallDir`" +login anonymous +app_update $AppId validate +quit"
+        # Properly escape the install directory path
+        $escapedInstallDir = $InstallDir.Replace('"', '\"')
+        $arguments = "+force_install_dir `"$escapedInstallDir`" +login anonymous +app_update $AppId validate +quit"
         $process = Start-Process -FilePath $script:ModuleConfig.SteamCmdPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
         
         if ($process.ExitCode -eq 0) {
@@ -360,7 +377,10 @@ function Add-MonitoredGame {
         Added = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     }
     
-    $config.MonitoredGames = @($config.MonitoredGames) + @($newGame)
+    # Use ArrayList for better performance
+    $gamesList = [System.Collections.ArrayList]@($config.MonitoredGames)
+    $gamesList.Add($newGame) | Out-Null
+    $config.MonitoredGames = $gamesList.ToArray()
     
     $result = Set-SteamLibraryUpdaterConfig -Config $config
     if ($result) {
