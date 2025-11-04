@@ -178,8 +178,8 @@ function Get-SteamAppInfo {
         }
         catch {
             if ($attempt -lt $maxAttempts) {
-                $errorMsg = $_
-                Write-Log "Attempt $attempt failed to get app info for $AppId : $errorMsg. Retrying in $delay second(s)..." -Level Warning
+                $errorMsg = $_.ToString()
+                Write-Log "Attempt $attempt failed to get app info for $AppId : $errorMsg - Retrying in $delay second(s)..." -Level Warning
                 Start-Sleep -Seconds $delay
                 $delay = [Math]::Min($delay * 2, 8)
             }
@@ -629,23 +629,45 @@ function Find-AppIdByName {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
         [string]$GameName
     )
     
+    # Validate input to prevent malicious content
+    if ($GameName.Length -gt 200) {
+        Write-Log "Game name too long (max 200 characters)" -Level Warning
+        return $null
+    }
+    
     try {
-        # Use Steam store search API
-        $searchUrl = "https://store.steampowered.com/api/storesearch/?term=$([uri]::EscapeDataString($GameName))&cc=US&l=english"
-        $response = Invoke-RestMethod -Uri $searchUrl -Method Get -TimeoutSec 30
+        # Use Steam store search API with proper URL encoding
+        $encodedName = [uri]::EscapeDataString($GameName)
+        $searchUrl = "https://store.steampowered.com/api/storesearch/?term=$encodedName&cc=US&l=english"
         
-        if ($response.total -gt 0 -and $response.items) {
+        $response = Invoke-RestMethod -Uri $searchUrl -Method Get -TimeoutSec 30 -ErrorAction Stop
+        
+        # Validate response structure
+        if ($null -eq $response) {
+            Write-Log "Received null response from Steam API" -Level Warning
+            return $null
+        }
+        
+        if ($response.PSObject.Properties['total'] -and $response.total -gt 0 -and 
+            $response.PSObject.Properties['items'] -and $response.items) {
             # Return the first result as it's usually the most relevant
             $topResult = $response.items[0]
-            return [PSCustomObject]@{
-                AppId = $topResult.id
-                Name = $topResult.name
-                Type = $topResult.type
+            
+            # Validate required properties exist
+            if ($topResult.PSObject.Properties['id'] -and $topResult.PSObject.Properties['name']) {
+                return [PSCustomObject]@{
+                    AppId = $topResult.id
+                    Name = $topResult.name
+                    Type = if ($topResult.PSObject.Properties['type']) { $topResult.type } else { "unknown" }
+                }
             }
         }
+        
+        Write-Log "No valid results found for game '$GameName'" -Level Info
     }
     catch {
         Write-Log "Error searching for game '$GameName': $_" -Level Warning

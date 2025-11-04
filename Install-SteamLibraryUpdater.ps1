@@ -190,8 +190,8 @@ if (-not (Test-Path $steamCmdPath)) {
             $steamCmdZip = Join-Path $env:TEMP "steamcmd.zip"
             $steamCmdUrl = "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip"
             
-            # Download SteamCMD
-            Invoke-WebRequest -Uri $steamCmdUrl -OutFile $steamCmdZip -UseBasicParsing
+            # Download SteamCMD with SSL/TLS verification
+            Invoke-WebRequest -Uri $steamCmdUrl -OutFile $steamCmdZip -UseBasicParsing -ErrorAction Stop
             
             # Extract to installation directory
             $steamCmdDir = Join-Path $InstallPath "steamcmd"
