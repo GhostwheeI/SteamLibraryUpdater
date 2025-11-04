@@ -168,14 +168,25 @@ function Get-SteamAppInfo {
         return $null
     }
     
-    try {
-        $uri = "https://api.steamcmd.net/v1/info/$AppId"
-        $response = Invoke-RestMethod -Uri $uri -Method Get -TimeoutSec 30
-        return $response
-    }
-    catch {
-        Write-Log "Error getting app info for $AppId : $_" -Level Error
-        return $null
+    $uri = "https://api.steamcmd.net/v1/info/$AppId"
+    $maxAttempts = 4
+    $delay = 1
+    for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+        try {
+            $response = Invoke-RestMethod -Uri $uri -Method Get -TimeoutSec 30
+            return $response
+        }
+        catch {
+            if ($attempt -lt $maxAttempts) {
+                Write-Log "Attempt $attempt failed to get app info for $AppId: $_. Retrying in $delay second(s)..." -Level Warning
+                Start-Sleep -Seconds $delay
+                $delay = [Math]::Min($delay * 2, 8)
+            }
+            else {
+                Write-Log "Error getting app info for $AppId after $maxAttempts attempts: $_" -Level Error
+                return $null
+            }
+        }
     }
 }
 
