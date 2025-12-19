@@ -45,7 +45,8 @@ if (-not (Test-Path $InstallPath)) {
 Write-Host "[2/7] Copying files..." -ForegroundColor Yellow
 $sourceFiles = @(
     "SteamLibraryUpdater.psm1",
-    "Uninstall-SteamLibraryUpdater.ps1"
+    "Uninstall-SteamLibraryUpdater.ps1",
+    "Configure-SteamLibraryUpdater.ps1"
 )
 
 foreach ($file in $sourceFiles) {
@@ -103,6 +104,73 @@ else {
     Write-Host "  Updates will be paused while gaming (default)" -ForegroundColor Green
 }
 
+# Auto-detect Steam and add installed games to monitoring
+Write-Host ""
+Write-Host "Detecting Steam installation and installed games..." -ForegroundColor Yellow
+try {
+    $modulePath = Join-Path $InstallPath "SteamLibraryUpdater.psm1"
+    if (Test-Path $modulePath) {
+        Import-Module $modulePath -Force
+        $config = Get-SteamLibraryUpdaterConfig
+
+        if (-not $config.SteamInstallPath) {
+            $steamPath = Find-SteamInstallPath
+            if ($steamPath) {
+                $config.SteamInstallPath = $steamPath
+            }
+        }
+
+        $installedGames = Get-InstalledSteamGames -SteamPath $config.SteamInstallPath
+        $addedCount = 0
+
+        $existingAppIds = @()
+        if ($config.MonitoredGames) {
+            $existingAppIds = $config.MonitoredGames | ForEach-Object { $_.AppId }
+        }
+
+        $gamesList = [System.Collections.ArrayList]@()
+        if ($config.MonitoredGames) {
+            $gamesList.AddRange($config.MonitoredGames)
+        }
+
+        foreach ($game in $installedGames) {
+            if ($existingAppIds -contains $game.AppId) {
+                continue
+            }
+
+            $newGame = [PSCustomObject]@{
+                AppId = $game.AppId
+                Name = $game.Name
+                InstallDir = $game.InstallDir
+                ProcessName = $game.ProcessName
+                Added = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            }
+
+            $gamesList.Add($newGame) | Out-Null
+            $addedCount++
+        }
+
+        $config.MonitoredGames = $gamesList.ToArray()
+        Set-SteamLibraryUpdaterConfig -Config $config | Out-Null
+
+        if ($installedGames.Count -eq 0) {
+            Write-Host "  No installed Steam games detected." -ForegroundColor Yellow
+        }
+        elseif ($addedCount -gt 0) {
+            Write-Host "  Added $addedCount game(s) to monitoring." -ForegroundColor Green
+        }
+        else {
+            Write-Host "  All installed games are already being monitored." -ForegroundColor Green
+        }
+    }
+    else {
+        Write-Host "  Warning: Module not found, skipping auto-detection." -ForegroundColor Yellow
+    }
+}
+catch {
+    Write-Host "  Warning: Auto-detection failed: $_" -ForegroundColor Yellow
+}
+
 # Create scheduled task to monitor Steam
 Write-Host ""
 Write-Host "[4/7] Creating scheduled task..." -ForegroundColor Yellow
@@ -126,6 +194,25 @@ if (`$null -eq `$steamRunning) {
     exit 0
 }
 
+# Respect configured interval to avoid excessive checks
+`$config = Get-SteamLibraryUpdaterConfig
+`$intervalMinutes = 60
+if (`$config.CheckIntervalMinutes -and [int]`$config.CheckIntervalMinutes -gt 0) {
+    `$intervalMinutes = [int]`$config.CheckIntervalMinutes
+}
+
+`$lastCheck = `$null
+if (`$config.LastCheck) {
+    [datetime]::TryParse(`$config.LastCheck, [ref]`$lastCheck) | Out-Null
+}
+
+if (`$lastCheck) {
+    `$elapsed = (Get-Date) - `$lastCheck
+    if (`$elapsed.TotalMinutes -lt `$intervalMinutes) {
+        exit 0
+    }
+}
+
 # Run the update check
 Start-SteamLibraryUpdate -Verbose
 "@
@@ -135,11 +222,11 @@ Set-Content -Path $taskScriptPath -Value $taskScriptContent -Force
 # Create scheduled task
 $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$taskScriptPath`""
 
-# Trigger: Run every hour when any user is logged on
-$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 60)
+# Trigger: Run every 5 minutes to catch Steam start, but respect interval in RunUpdater.ps1
+$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5) -RepetitionDuration (New-TimeSpan -Days 3650)
 
 # Settings
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RunOnlyIfNetworkAvailable
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RunOnlyIfNetworkAvailable -MultipleInstances IgnoreNew
 
 # Principal - Run with highest privileges as SYSTEM for all users
 $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType Service -RunLevel Highest
@@ -239,44 +326,15 @@ else {
     Write-Host "  SteamCMD found" -ForegroundColor Green
 }
 
-# Create desktop shortcut for configuration
-Write-Host "[7/7] Creating configuration shortcut..." -ForegroundColor Yellow
-$configScriptPath = Join-Path $InstallPath "Configure.ps1"
-$configScriptContent = @"
-# Steam Library Updater - Configuration Tool
-Import-Module '$InstallPath\SteamLibraryUpdater.psm1' -Force
-
-Write-Host "==================================================" -ForegroundColor Cyan
-Write-Host " Steam Library Updater - Configuration" -ForegroundColor Cyan
-Write-Host "==================================================" -ForegroundColor Cyan
-Write-Host ""
-
-`$config = Get-SteamLibraryUpdaterConfig
-
-Write-Host "Current Configuration:" -ForegroundColor Yellow
-Write-Host "  Update During Gaming: `$(`$config.UpdateDuringGaming)" -ForegroundColor White
-Write-Host "  Check Interval: `$(`$config.CheckIntervalMinutes) minutes" -ForegroundColor White
-Write-Host "  Auto Update Enabled: `$(`$config.EnableAutoUpdate)" -ForegroundColor White
-Write-Host "  Monitored Games: `$(`$config.MonitoredGames.Count)" -ForegroundColor White
-Write-Host ""
-
-if (`$config.MonitoredGames.Count -gt 0) {
-    Write-Host "Monitored Games:" -ForegroundColor Yellow
-    foreach (`$game in `$config.MonitoredGames) {
-        Write-Host "  - `$(`$game.Name) (AppId: `$(`$game.AppId))" -ForegroundColor White
-    }
-    Write-Host ""
+# Ensure configuration tool is available
+Write-Host "[7/7] Installing configuration tool..." -ForegroundColor Yellow
+$configScriptPath = Join-Path $InstallPath "Configure-SteamLibraryUpdater.ps1"
+if (Test-Path $configScriptPath) {
+    Write-Host "  Configuration tool ready" -ForegroundColor Green
 }
-
-Write-Host "To add games to monitor, use the Add-MonitoredGame function" -ForegroundColor Cyan
-Write-Host "Example:" -ForegroundColor Cyan
-Write-Host "  Add-MonitoredGame -AppId '730' -Name 'Counter-Strike 2' -InstallDir 'C:\Path\To\Game' -ProcessName 'cs2'" -ForegroundColor Gray
-Write-Host ""
-
-Read-Host "Press Enter to exit"
-"@
-
-Set-Content -Path $configScriptPath -Value $configScriptContent -Force
+else {
+    Write-Host "  Warning: configuration tool not found" -ForegroundColor Yellow
+}
 
 Write-Host ""
 Write-Host "==================================================" -ForegroundColor Green
@@ -288,7 +346,8 @@ Write-Host ""
 Write-Host "Location: $InstallPath" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "The updater will automatically run when Steam is running." -ForegroundColor White
-Write-Host "It checks for updates every 60 minutes." -ForegroundColor White
+Write-Host "It checks for updates on your configured interval (default: 60 minutes)." -ForegroundColor White
+Write-Host "The scheduled task runs every 5 minutes and exits quickly if not due." -ForegroundColor White
 Write-Host ""
 if (-not (Test-Path $steamCmdPath)) {
     Write-Host "IMPORTANT: Please download and install SteamCMD:" -ForegroundColor Yellow

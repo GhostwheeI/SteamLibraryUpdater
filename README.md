@@ -70,6 +70,7 @@ No more manual copying of files, searching for App IDs, or typing long install p
 3. **Follow the installation prompts**
    - Choose whether to allow updates during gaming (default: No)
    - Choose whether to automatically download SteamCMD (recommended: Yes)
+   - Installed games are auto-detected and added to monitoring
    - The installer will set up everything automatically
 
 ### What Gets Installed
@@ -80,7 +81,7 @@ No more manual copying of files, searching for App IDs, or typing long install p
   - Uninstaller script
   - Logs directory
   
-- **Windows Task Scheduler**: Scheduled task that runs every hour when Steam is running
+- **Windows Task Scheduler**: Scheduled task that runs every 5 minutes and respects your configured check interval
 
 - **Add/Remove Programs**: Entry for easy uninstallation
 
@@ -94,6 +95,8 @@ The easiest way to configure Steam Library Updater is using the interactive conf
 # Run the configuration tool
 C:\Program Files\SteamLibraryUpdater\Configure-SteamLibraryUpdater.ps1
 ```
+
+The installer already auto-detects and adds installed games. Use the configuration tool to review or adjust the list.
 
 The configuration tool provides several automated options:
 - **Auto-detect installed games**: Automatically scans your Steam library and lets you select games to monitor
@@ -177,7 +180,7 @@ Remove-MonitoredGame -AppId "440"
 Once installed, Steam Library Updater runs automatically in the background:
 
 1. **When Steam starts**, the scheduled task begins checking for updates
-2. **Every hour**, it checks all monitored games for available updates
+2. **Every 5 minutes**, it checks whether an update pass is due based on your interval
 3. **If a game needs updating** and conditions are met (not gaming, etc.), it updates automatically
 4. **All activity is logged** to `C:\Program Files\SteamLibraryUpdater\Logs\`
 
@@ -269,7 +272,6 @@ Test-GameNeedsUpdate -AppId "730"
 - [ ] Update notifications
 - [ ] Bandwidth throttling options
 - [ ] Multiple Steam library support
-- [ ] Auto-detection of installed games
 - [ ] Update scheduling by time of day
 
 ## Contributing

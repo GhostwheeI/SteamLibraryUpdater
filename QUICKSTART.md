@@ -18,6 +18,8 @@ Run the configuration tool to automatically detect and add your Steam games:
 C:\Program Files\SteamLibraryUpdater\Configure-SteamLibraryUpdater.ps1
 ```
 
+Note: The installer already auto-detects and adds installed games. Use the tool below to review or adjust the list.
+
 **Easy Options:**
 - Press **4** then **1** to auto-detect installed games (pick from a list)
 - Press **6** to automatically add ALL your installed Steam games at once
@@ -29,7 +31,7 @@ C:\Program Files\SteamLibraryUpdater\Configure-SteamLibraryUpdater.ps1
 
 That's it! Steam Library Updater will now:
 - ✅ Run automatically when Steam is running
-- ✅ Check for updates every hour
+- ✅ Check for updates on your configured interval (default: 60 minutes)
 - ✅ Update games when you're not playing (by default)
 - ✅ Log all activities
 
@@ -121,3 +123,4 @@ C:\Program Files\SteamLibraryUpdater\Uninstall-SteamLibraryUpdater.ps1
 💡 **Tip 3**: Check the logs occasionally to ensure updates are happening
 
 💡 **Tip 4**: SteamCMD will download on first run - this is normal and may take a few minutes
+

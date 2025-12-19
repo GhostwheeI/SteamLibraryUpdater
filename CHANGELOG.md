@@ -4,6 +4,17 @@ All notable changes to Steam Library Updater will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.0] - 2025-12-18
+
+### Added
+
+- Auto-detect and auto-add installed games during installation
+- Installer now includes the interactive configuration tool in the install directory
+
+### Changed
+
+- Scheduled task runs every 5 minutes and defers to CheckIntervalMinutes to avoid excessive checks
+
 ## [1.0.0] - 2025-11-04
 
 ### Added - Major Overhaul
@@ -144,7 +155,6 @@ Potential features for future releases:
 - [ ] Update notifications (system tray)
 - [ ] Bandwidth throttling options
 - [ ] Multiple Steam library auto-detection
-- [ ] Installed games auto-discovery
 - [ ] Update scheduling by time of day
 - [ ] Update size estimation before downloading
 - [ ] Pause/resume functionality
