@@ -4,6 +4,12 @@ All notable changes to Steam Update Manager will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.1] - 2026-05-06
+
+### Fixed
+
+- Quoted the legacy SteamCMD `force_install_dir` argument explicitly so Windows PowerShell 5.1 cannot split `C:\Program Files\...` into a stray `C:\program` update folder.
+
 ## [2.0.0] - 2026-05-06
 
 ### Added

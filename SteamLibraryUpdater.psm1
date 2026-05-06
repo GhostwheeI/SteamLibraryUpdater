@@ -9,7 +9,7 @@
 
 # Module configuration
 $script:AppName = "Steam Update Manager"
-$script:AppVersion = "2.0.0"
+$script:AppVersion = "2.0.1"
 $script:ProductFolder = "Steam-Update-Manager"
 $script:DataRoot = if ($env:ProgramData) {
     Join-Path $env:ProgramData $script:ProductFolder
@@ -409,18 +409,12 @@ function Update-SteamGame {
     try {
         Write-Log "Starting update for App $AppId to $InstallDir" -Level Info
         
-        # Use array-based arguments to avoid shell interpretation issues
-        $arguments = @(
-            "+force_install_dir"
-            $InstallDir
-            "+login"
-            "anonymous"
-            "+app_update"
-            $AppId
-            "validate"
-            "+quit"
-        )
-        $process = Start-Process -FilePath $steamCmdPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
+        # Windows PowerShell 5.1 can still split Start-Process argument arrays
+        # in surprising ways. Quote the install path explicitly so SteamCMD
+        # never interprets "C:\Program Files\..." as "C:\program".
+        $escapedInstallDir = $InstallDir -replace '"', '\"'
+        $argumentLine = "+force_install_dir `"$escapedInstallDir`" +login anonymous +app_update $AppId validate +quit"
+        $process = Start-Process -FilePath $steamCmdPath -ArgumentList $argumentLine -Wait -PassThru -NoNewWindow
         
         if ($process.ExitCode -eq 0) {
             Write-Log "Successfully updated App $AppId" -Level Info
