@@ -2,9 +2,9 @@
 
 <#
 .SYNOPSIS
-    Configuration tool for Steam Library Updater
+    Configuration tool for Steam Update Manager
 .DESCRIPTION
-    Provides an interactive interface to configure Steam Library Updater settings and manage monitored games.
+    Provides an interactive interface to configure Steam Update Manager settings and manage monitored games.
 .EXAMPLE
     .\Configure-SteamLibraryUpdater.ps1
 #>
@@ -13,7 +13,10 @@
 param()
 
 # Determine the correct module path
-if (Test-Path "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1") {
+if (Test-Path "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1") {
+    $modulePath = "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
+}
+elseif (Test-Path "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1") {
     $modulePath = "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
 }
 elseif (Test-Path (Join-Path $PSScriptRoot "SteamLibraryUpdater.psm1")) {
@@ -30,7 +33,7 @@ Import-Module $modulePath -Force
 function Show-Menu {
     Clear-Host
     Write-Host "==================================================" -ForegroundColor Cyan
-    Write-Host " Steam Library Updater - Configuration" -ForegroundColor Cyan
+    Write-Host " Steam Update Manager - Configuration" -ForegroundColor Cyan
     Write-Host "==================================================" -ForegroundColor Cyan
     Write-Host ""
     
@@ -406,7 +409,11 @@ function View-Logs {
     Write-Host "=== Recent Log Entries ===" -ForegroundColor Cyan
     Write-Host ""
     
-    $logPath = if (Test-Path "C:\Program Files\SteamLibraryUpdater\Logs") {
+    $paths = Get-SteamUpdateManagerPaths
+    $logPath = if (Test-Path $paths.LogPath) {
+        $paths.LogPath
+    }
+    elseif (Test-Path "C:\Program Files\SteamLibraryUpdater\Logs") {
         "C:\Program Files\SteamLibraryUpdater\Logs"
     }
     elseif (Test-Path (Join-Path $PSScriptRoot "Logs")) {

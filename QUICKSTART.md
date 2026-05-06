@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-Get Steam Library Updater up and running in 5 minutes!
+Get Steam Update Manager up and running in 5 minutes!
 
 ## Step 1: Install
 
@@ -15,7 +15,7 @@ Run the configuration tool to automatically detect and add your Steam games:
 
 ```powershell
 # Open PowerShell as Administrator
-C:\Program Files\SteamLibraryUpdater\Configure-SteamLibraryUpdater.ps1
+C:\Program Files\Steam-Update-Manager\Configure-SteamLibraryUpdater.ps1
 ```
 
 Note: The installer already auto-detects and adds installed games. Use the tool below to review or adjust the list.
@@ -29,7 +29,7 @@ Note: The installer already auto-detects and adds installed games. Use the tool 
 
 ## Step 3: Done!
 
-That's it! Steam Library Updater will now:
+That's it! Steam Update Manager will now:
 - ✅ Run automatically when Steam is running
 - ✅ Check for updates on your configured interval (default: 60 minutes)
 - ✅ Update games when you're not playing (by default)
@@ -71,7 +71,7 @@ Verify everything is working:
 
 ```powershell
 # Open PowerShell as Administrator
-cd "C:\Program Files\SteamLibraryUpdater"
+cd "C:\Program Files\Steam-Update-Manager"
 Import-Module .\SteamLibraryUpdater.psm1
 
 # Check if Steam is running
@@ -90,28 +90,28 @@ Check what the updater has been doing:
 
 ```powershell
 # View today's log
-notepad "C:\Program Files\SteamLibraryUpdater\Logs\SteamLibraryUpdater_$(Get-Date -Format 'yyyyMMdd').log"
+notepad "C:\Program Files\Steam-Update-Manager\Logs\SteamLibraryUpdater_$(Get-Date -Format 'yyyyMMdd').log"
 ```
 
 ## Uninstalling
 
-If you need to remove Steam Library Updater:
+If you need to remove Steam Update Manager:
 
 1. Go to **Settings** → **Apps** → **Apps & features**
-2. Search for "Steam Library Updater"
+2. Search for "Steam Update Manager"
 3. Click **Uninstall**
 
 **OR**
 
 ```powershell
 # Run as Administrator
-C:\Program Files\SteamLibraryUpdater\Uninstall-SteamLibraryUpdater.ps1
+C:\Program Files\Steam-Update-Manager\Uninstall-SteamLibraryUpdater.ps1
 ```
 
 ## Need Help?
 
 - Check the [full README](README.md) for detailed documentation
-- Review the logs in `C:\Program Files\SteamLibraryUpdater\Logs\`
+- Review the logs in `C:\Program Files\Steam-Update-Manager\Logs\`
 - Open an issue on GitHub
 
 ## Pro Tips

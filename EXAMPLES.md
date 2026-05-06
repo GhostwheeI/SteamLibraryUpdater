@@ -1,6 +1,6 @@
 # Usage Examples
 
-This document provides practical examples of using Steam Library Updater.
+This document provides practical examples of using Steam Update Manager.
 
 ## Table of Contents
 
@@ -28,7 +28,7 @@ cd C:\Users\YourName\Downloads\SteamLibraryUpdater
 
 # 5. Download SteamCMD
 # Visit: https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip
-# Extract steamcmd.exe to: C:\Program Files\SteamLibraryUpdater\steamcmd\
+# Extract steamcmd.exe to: C:\Program Files\Steam-Update-Manager\steamcmd\
 ```
 
 ### Example 2: Installation with Automatic SteamCMD Download
@@ -51,7 +51,7 @@ cd C:\Users\YourName\Downloads\SteamLibraryUpdater
 ### Example 3: Auto-Detect Installed Steam Games
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 # Automatically find your Steam installation
 $steamPath = Find-SteamInstallPath
@@ -69,7 +69,7 @@ $games | Select-Object Name, AppId, InstallDir | Format-Table
 
 ```powershell
 # Using the interactive configuration tool
-C:\Program Files\SteamLibraryUpdater\Configure-SteamLibraryUpdater.ps1
+C:\Program Files\Steam-Update-Manager\Configure-SteamLibraryUpdater.ps1
 
 # Press 6 for "Quick Add All Installed Games"
 # Confirm when prompted
@@ -79,7 +79,7 @@ C:\Program Files\SteamLibraryUpdater\Configure-SteamLibraryUpdater.ps1
 ### Example 5: Search for a Game by Name
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 # Search for a game
 $result = Find-AppIdByName -GameName "Portal"
@@ -94,7 +94,7 @@ if ($result) {
 ### Example 6: Get Steam Library Folders
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 # Find Steam installation
 $steamPath = Find-SteamInstallPath
@@ -114,7 +114,7 @@ $libraries | ForEach-Object {
 
 ```powershell
 # Run the configuration tool
-C:\Program Files\SteamLibraryUpdater\Configure-SteamLibraryUpdater.ps1
+C:\Program Files\Steam-Update-Manager\Configure-SteamLibraryUpdater.ps1
 
 # Press 4 to "Add Game to Monitor"
 # Then select:
@@ -127,7 +127,7 @@ C:\Program Files\SteamLibraryUpdater\Configure-SteamLibraryUpdater.ps1
 
 ```powershell
 # Using auto-detection - the easy way!
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 # Get all installed games
 $games = Get-InstalledSteamGames
@@ -144,7 +144,7 @@ if ($cs2) {
 ### Example 9: Add Multiple Games
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 # Add Dota 2
 Add-MonitoredGame -AppId "570" -Name "Dota 2" -InstallDir "C:\Steam\steamapps\common\dota 2 beta" -ProcessName "dota2"
@@ -163,7 +163,7 @@ Add-MonitoredGame -AppId "620" -Name "Portal 2" -InstallDir "C:\Steam\steamapps\
 
 ```powershell
 # Method 1: Use Auto-Detection (Easiest!)
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 $games = Get-InstalledSteamGames
 $games | Select-Object Name, InstallDir | Format-Table -AutoSize
 
@@ -189,7 +189,7 @@ foreach ($lib in $libraries) {
 ### Example 11: Enable Updates During Gaming
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 # Get current config
 $config = Get-SteamLibraryUpdaterConfig
@@ -206,7 +206,7 @@ Write-Host "Updates will now run even while gaming" -ForegroundColor Green
 ### Example 12: Change Check Interval to 30 Minutes
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 $config = Get-SteamLibraryUpdaterConfig
 $config.CheckIntervalMinutes = 30
@@ -218,7 +218,7 @@ Write-Host "Update checks will now run every 30 minutes" -ForegroundColor Green
 ### Example 13: Temporarily Disable Auto-Updates
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 $config = Get-SteamLibraryUpdaterConfig
 $config.EnableAutoUpdate = $false
@@ -232,7 +232,7 @@ Write-Host "Re-enable by setting EnableAutoUpdate to $true" -ForegroundColor Cya
 
 ```powershell
 # Open PowerShell as Administrator
-C:\Program Files\SteamLibraryUpdater\Configure-SteamLibraryUpdater.ps1
+C:\Program Files\Steam-Update-Manager\Configure-SteamLibraryUpdater.ps1
 
 # Then use the menu:
 # - Press 1 to toggle "Update During Gaming"
@@ -248,7 +248,7 @@ C:\Program Files\SteamLibraryUpdater\Configure-SteamLibraryUpdater.ps1
 ### Example 15: Manual Update Check
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 # Run a manual update check (with verbose output)
 Start-SteamLibraryUpdate -Verbose
@@ -259,7 +259,7 @@ Start-SteamLibraryUpdate -Verbose
 ### Example 16: Check If Steam Is Running
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 if (Test-SteamRunning) {
     Write-Host "Steam is currently running" -ForegroundColor Green
@@ -271,7 +271,7 @@ if (Test-SteamRunning) {
 ### Example 17: Check If Any Game Is Running
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 if (Test-GameRunning) {
     Write-Host "A game is currently running" -ForegroundColor Green
@@ -283,7 +283,7 @@ if (Test-GameRunning) {
 ### Example 18: Check Single Game for Updates
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 # Check if CS2 needs an update
 $needsUpdate = Test-GameNeedsUpdate -AppId "730"
@@ -298,7 +298,7 @@ if ($needsUpdate) {
 ### Example 19: Manually Update a Specific Game
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 # Manually update Counter-Strike 2
 $success = Update-SteamGame -AppId "730" -InstallDir "C:\Steam\steamapps\common\Counter-Strike Global Offensive"
@@ -316,7 +316,7 @@ if ($success) {
 
 ```powershell
 # View today's log
-$logFile = "C:\Program Files\SteamLibraryUpdater\Logs\SteamLibraryUpdater_$(Get-Date -Format 'yyyyMMdd').log"
+$logFile = "C:\Program Files\Steam-Update-Manager\Logs\SteamLibraryUpdater_$(Get-Date -Format 'yyyyMMdd').log"
 
 if (Test-Path $logFile) {
     # Show last 20 lines
@@ -329,7 +329,7 @@ if (Test-Path $logFile) {
 ### Example 21: View All Monitored Games
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 $config = Get-SteamLibraryUpdaterConfig
 
@@ -349,7 +349,7 @@ foreach ($game in $config.MonitoredGames) {
 ### Example 22: Remove a Game from Monitoring
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 # Remove Counter-Strike 2 (App ID 730)
 Remove-MonitoredGame -AppId "730"
@@ -361,14 +361,14 @@ Write-Host "Game removed from monitoring" -ForegroundColor Green
 
 ```powershell
 # Check if the scheduled task exists
-$task = Get-ScheduledTask -TaskName "SteamLibraryUpdater" -ErrorAction SilentlyContinue
+$task = Get-ScheduledTask -TaskName "SteamUpdateManager" -ErrorAction SilentlyContinue
 
 if ($task) {
     Write-Host "Scheduled task found" -ForegroundColor Green
     Write-Host "State: $($task.State)" -ForegroundColor Cyan
     
     # Get task info
-    $taskInfo = Get-ScheduledTaskInfo -TaskName "SteamLibraryUpdater"
+    $taskInfo = Get-ScheduledTaskInfo -TaskName "SteamUpdateManager"
     Write-Host "Last Run Time: $($taskInfo.LastRunTime)" -ForegroundColor Cyan
     Write-Host "Next Run Time: $($taskInfo.NextRunTime)" -ForegroundColor Cyan
 } else {
@@ -380,7 +380,7 @@ if ($task) {
 ### Example 24: Reset Configuration to Defaults
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 # Create default configuration
 $defaultConfig = [PSCustomObject]@{
@@ -402,7 +402,7 @@ Write-Host "You will need to re-add your games" -ForegroundColor Yellow
 ### Example 25: Check SteamCMD Installation
 
 ```powershell
-$steamCmdPath = "C:\Program Files\SteamLibraryUpdater\steamcmd\steamcmd.exe"
+$steamCmdPath = "C:\Program Files\Steam-Update-Manager\steamcmd\steamcmd.exe"
 
 if (Test-Path $steamCmdPath) {
     Write-Host "SteamCMD is installed" -ForegroundColor Green
@@ -431,7 +431,7 @@ if (Test-Path $steamCmdPath) {
 # 730,"Counter-Strike 2","C:\Steam\steamapps\common\Counter-Strike Global Offensive",cs2
 # 570,"Dota 2","C:\Steam\steamapps\common\dota 2 beta",dota2
 
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 $games = Import-Csv -Path "games.csv"
 
@@ -451,10 +451,10 @@ Write-Host "All games added!" -ForegroundColor Green
 ### Example 27: Export Configuration for Backup
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
 $config = Get-SteamLibraryUpdaterConfig
-$backupPath = "C:\Users\$env:USERNAME\Desktop\SteamLibraryUpdater_Backup_$(Get-Date -Format 'yyyyMMdd').json"
+$backupPath = "C:\Users\$env:USERNAME\Desktop\SteamUpdateManager_Backup_$(Get-Date -Format 'yyyyMMdd').json"
 
 $config | ConvertTo-Json -Depth 10 | Set-Content $backupPath
 
@@ -464,9 +464,9 @@ Write-Host "Configuration backed up to: $backupPath" -ForegroundColor Green
 ### Example 28: Restore Configuration from Backup
 
 ```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1"
 
-$backupPath = "C:\Users\$env:USERNAME\Desktop\SteamLibraryUpdater_Backup_20250101.json"
+$backupPath = "C:\Users\$env:USERNAME\Desktop\SteamUpdateManager_Backup_20250101.json"
 
 if (Test-Path $backupPath) {
     $config = Get-Content $backupPath -Raw | ConvertFrom-Json
@@ -483,5 +483,5 @@ if (Test-Path $backupPath) {
 
 - Check the [README](README.md) for detailed documentation
 - See the [Quick Start Guide](QUICKSTART.md) for installation
-- Review logs in `C:\Program Files\SteamLibraryUpdater\Logs\`
+- Review logs in `C:\Program Files\Steam-Update-Manager\Logs\`
 - Open an issue on GitHub for additional support

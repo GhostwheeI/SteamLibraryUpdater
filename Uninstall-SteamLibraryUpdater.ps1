@@ -3,69 +3,85 @@
 
 <#
 .SYNOPSIS
-    Uninstalls Steam Library Updater
+    Uninstalls Steam Update Manager.
 .DESCRIPTION
-    Removes Steam Library Updater from the system, including scheduled tasks and registry entries.
-.EXAMPLE
-    .\Uninstall-SteamLibraryUpdater.ps1
+    Removes the scheduled task, startup entry, Apps & Features registration,
+    installed scripts, and optionally ProgramData configuration/logs.
 #>
 
 [CmdletBinding()]
 param(
-    [switch]$Silent
+    [switch]$Silent,
+    [switch]$KeepData
 )
 
-$InstallPath = Join-Path $env:ProgramFiles "SteamLibraryUpdater"
-$TaskName = "SteamLibraryUpdater"
+$ProductName = "Steam Update Manager"
+$ProductFolder = "Steam-Update-Manager"
+$InstallPath = Join-Path $env:ProgramFiles $ProductFolder
+$DataPath = Join-Path $env:ProgramData $ProductFolder
+$TaskName = "SteamUpdateManager"
+$LegacyTaskName = "SteamLibraryUpdater"
+$RunValueName = "Steam Update Manager"
 $UninstallGuid = "{B4C8A9E2-1234-5678-9ABC-DEF012345678}"
+$StartMenuShortcutPath = Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\Steam Update Manager.lnk"
+$DesktopShortcutPath = Join-Path ([Environment]::GetFolderPath("Desktop")) "Steam Update Manager.lnk"
+
+function Test-Administrator {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = [Security.Principal.WindowsPrincipal]$identity
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Write-ProgressLine {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Message
+    )
+
+    if (-not $Silent) {
+        Write-Host $Message -ForegroundColor Yellow
+    }
+}
 
 if (-not $Silent) {
     Write-Host "==================================================" -ForegroundColor Cyan
-    Write-Host " Steam Library Updater - Uninstallation" -ForegroundColor Cyan
+    Write-Host " $ProductName - Uninstallation" -ForegroundColor Cyan
     Write-Host "==================================================" -ForegroundColor Cyan
     Write-Host ""
 }
 
-# Check if running as administrator
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+if (-not (Test-Administrator)) {
     Write-Host "ERROR: This script must be run as Administrator" -ForegroundColor Red
-    Write-Host "Please right-click and select 'Run as Administrator'" -ForegroundColor Yellow
     if (-not $Silent) {
         Read-Host "Press Enter to exit"
     }
     exit 1
 }
 
-# Confirm uninstallation
 if (-not $Silent) {
-    Write-Host "This will remove Steam Library Updater from your system." -ForegroundColor Yellow
-    Write-Host ""
+    Write-Host "This will remove $ProductName from your system." -ForegroundColor Yellow
     $confirm = Read-Host "Do you want to continue? (y/N)"
     if ($confirm -notmatch '^[Yy]') {
         Write-Host "Uninstallation cancelled." -ForegroundColor Yellow
         Read-Host "Press Enter to exit"
         exit 0
     }
-    Write-Host ""
+
+    if (-not $KeepData) {
+        $response = Read-Host "Keep configuration, logs, and appinfo cache? (y/N)"
+        $KeepData = $response -match '^[Yy]'
+    }
 }
 
 $errorOccurred = $false
 
-# Remove scheduled task
-if (-not $Silent) {
-    Write-Host "[1/3] Removing scheduled task..." -ForegroundColor Yellow
-}
+Write-ProgressLine "[1/5] Removing scheduled task..."
 try {
-    $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-    if ($task) {
-        Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
-        if (-not $Silent) {
-            Write-Host "  Scheduled task removed" -ForegroundColor Green
-        }
-    }
-    else {
-        if (-not $Silent) {
-            Write-Host "  No scheduled task found" -ForegroundColor Gray
+    foreach ($taskToRemove in @($TaskName, $LegacyTaskName)) {
+        $task = Get-ScheduledTask -TaskName $taskToRemove -ErrorAction SilentlyContinue
+        if ($task) {
+            Unregister-ScheduledTask -TaskName $taskToRemove -Confirm:$false
+            if (-not $Silent) { Write-Host "  Scheduled task removed: $taskToRemove" -ForegroundColor Green }
         }
     }
 }
@@ -74,22 +90,36 @@ catch {
     $errorOccurred = $true
 }
 
-# Remove Add/Remove Programs entry
-if (-not $Silent) {
-    Write-Host "[2/3] Removing Add/Remove Programs entry..." -ForegroundColor Yellow
+Write-ProgressLine "[2/5] Removing Start with Windows entry..."
+try {
+    $runPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+    Remove-ItemProperty -Path $runPath -Name $RunValueName -ErrorAction SilentlyContinue
+    if (-not $Silent) { Write-Host "  Startup entry removed if present" -ForegroundColor Green }
 }
+catch {
+    Write-Host "  Error removing startup entry: $_" -ForegroundColor Red
+    $errorOccurred = $true
+}
+
+Write-ProgressLine "[3/5] Removing shortcuts and Apps & Features entry..."
+try {
+    foreach ($shortcutPath in @($StartMenuShortcutPath, $DesktopShortcutPath)) {
+        if (Test-Path $shortcutPath) {
+            Remove-Item -LiteralPath $shortcutPath -Force
+            if (-not $Silent) { Write-Host "  Shortcut removed: $shortcutPath" -ForegroundColor Green }
+        }
+    }
+}
+catch {
+    Write-Host "  Error removing shortcuts: $_" -ForegroundColor Red
+    $errorOccurred = $true
+}
+
 try {
     $uninstallRegPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$UninstallGuid"
     if (Test-Path $uninstallRegPath) {
         Remove-Item -Path $uninstallRegPath -Recurse -Force
-        if (-not $Silent) {
-            Write-Host "  Registry entry removed" -ForegroundColor Green
-        }
-    }
-    else {
-        if (-not $Silent) {
-            Write-Host "  No registry entry found" -ForegroundColor Gray
-        }
+        if (-not $Silent) { Write-Host "  Registry entry removed" -ForegroundColor Green }
     }
 }
 catch {
@@ -97,78 +127,48 @@ catch {
     $errorOccurred = $true
 }
 
-# Remove installation directory
-if (-not $Silent) {
-    Write-Host "[3/3] Removing installation files..." -ForegroundColor Yellow
-}
+Write-ProgressLine "[4/5] Removing installation files..."
 try {
     if (Test-Path $InstallPath) {
-        # Ask if user wants to keep logs and configuration
-        $keepData = $false
-        if (-not $Silent) {
-            $response = Read-Host "Do you want to keep your logs and configuration? (y/N)"
-            $keepData = $response -match '^[Yy]'
-        }
-        
-        if ($keepData) {
-            # Keep logs and config, remove everything else
-            $itemsToRemove = Get-ChildItem -Path $InstallPath | Where-Object { $_.Name -notin @("Logs", "Config.json", "appinfo") }
-            foreach ($item in $itemsToRemove) {
-                try {
-                    if ($item.PSIsContainer) {
-                        Remove-Item -Path $item.FullName -Recurse -Force -ErrorAction SilentlyContinue
-                    } else {
-                        Remove-Item -Path $item.FullName -Force -ErrorAction SilentlyContinue
-                    }
-                } catch {
-                    Write-Host "  Error removing $($item.FullName): $_" -ForegroundColor Red
-                    $errorOccurred = $true
-                }
-            }
-            if (-not $Silent) {
-                Write-Host "  Installation files removed (kept logs and configuration)" -ForegroundColor Green
-                Write-Host "  Remaining files: $InstallPath" -ForegroundColor Cyan
-            }
-        }
-        else {
-            # Remove everything
-            Remove-Item -Path $InstallPath -Recurse -Force
-            if (-not $Silent) {
-                Write-Host "  Installation directory removed" -ForegroundColor Green
-            }
-        }
-    }
-    else {
-        if (-not $Silent) {
-            Write-Host "  Installation directory not found" -ForegroundColor Gray
-        }
+        Remove-Item -Path $InstallPath -Recurse -Force
+        if (-not $Silent) { Write-Host "  Installation folder removed" -ForegroundColor Green }
     }
 }
 catch {
-    Write-Host "  Error removing installation files: $_" -ForegroundColor Red
+    Write-Host "  Error removing installation folder: $_" -ForegroundColor Red
     Write-Host "  You may need to manually delete: $InstallPath" -ForegroundColor Yellow
+    $errorOccurred = $true
+}
+
+Write-ProgressLine "[5/5] Handling application data..."
+try {
+    if ((Test-Path $DataPath) -and -not $KeepData) {
+        Remove-Item -Path $DataPath -Recurse -Force
+        if (-not $Silent) { Write-Host "  Data folder removed" -ForegroundColor Green }
+    }
+    elseif ((Test-Path $DataPath) -and $KeepData) {
+        if (-not $Silent) { Write-Host "  Data folder kept: $DataPath" -ForegroundColor Cyan }
+    }
+}
+catch {
+    Write-Host "  Error handling data folder: $_" -ForegroundColor Red
     $errorOccurred = $true
 }
 
 if (-not $Silent) {
     Write-Host ""
     if ($errorOccurred) {
-        Write-Host "==================================================" -ForegroundColor Yellow
-        Write-Host " Uninstallation completed with errors" -ForegroundColor Yellow
-        Write-Host "==================================================" -ForegroundColor Yellow
+        Write-Host "Uninstallation completed with errors." -ForegroundColor Yellow
     }
     else {
-        Write-Host "==================================================" -ForegroundColor Green
-        Write-Host " Uninstallation Complete!" -ForegroundColor Green
-        Write-Host "==================================================" -ForegroundColor Green
+        Write-Host "Uninstallation complete." -ForegroundColor Green
     }
     Write-Host ""
-    Write-Host "Steam Library Updater has been removed from your system." -ForegroundColor White
-    Write-Host ""
-    Write-Host "Thank you for using Steam Library Updater!" -ForegroundColor Cyan
-    Write-Host ""
-    
     Read-Host "Press Enter to exit"
+}
+
+if ($errorOccurred) {
+    exit 1
 }
 
 exit 0

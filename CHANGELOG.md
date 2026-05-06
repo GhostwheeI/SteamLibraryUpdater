@@ -1,8 +1,46 @@
 # Changelog
 
-All notable changes to Steam Library Updater will be documented in this file.
+All notable changes to Steam Update Manager will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [2.0.0] - 2026-05-06
+
+### Added
+
+- Added `Steam-Update-Manager.ps1`, a PowerShell WinForms tray host with a right-click menu.
+- Added tray menu header with app name/version and a dynamic `Status:` line.
+- Added tray actions for Run with Steam, manual queued update starts, update-condition configuration, Settings, About, and Exit.
+- Added Settings dialog for Start with Windows, Show Taskbar Icon, diagnostic logging, log-folder access, and theme selection.
+- Added Windows app-theme detection so `Auto` resolves to the current system Light or Dark app theme.
+- Added custom app icon support for the tray, desktop shortcut, Start menu shortcut, and Apps & Features entry.
+- Added automatic installed-game monitoring as the default behavior.
+- Moved logs access into Settings.
+- Added a Configure tray option for update conditions.
+- Added a Settings checkbox for `Show Taskbar Icon`, unchecked by default.
+- Added ProgramData-backed config, appinfo cache, and logs under `C:\ProgramData\Steam-Update-Manager`.
+- Added size-controlled diagnostic logging with configurable `MaxLogFileKB` and `MaxLogFiles`.
+- Added advanced configuration values for update metadata provider, automatic installed-game monitoring, task polling interval, and SteamCMD path.
+
+### Changed
+
+- Renamed the installed product identity to Steam Update Manager.
+- Changed install location to `C:\Program Files\Steam-Update-Manager`.
+- Updated the installer to register Steam Update Manager in Apps & Features, install the tray host, create ProgramData runtime folders, download SteamCMD by default, and launch the tray app after install.
+- Updated the uninstaller to remove the scheduled task, startup entry, Apps & Features registration, installed scripts, and optionally ProgramData state.
+- Updated the CLI configuration script to resolve the new install path while keeping legacy path compatibility.
+- Simplified tray menu wording around Steam startup, queued update starts, and gaming pauses.
+- Moved `Allow updates while gaming` into Configure and left it unchecked by default.
+- Renamed the manual update and configure tray actions for shorter, clearer menu labels.
+- Moved shortcut and app registration icons to `AppIconTransparent.ico` to avoid cached white-background icon rendering.
+- Replaced the top-level `Run with Steam` checkmark with an `On`/`Off` submenu to remove the menu-wide check-margin bar.
+- Changed Start with Windows to default on and Show Taskbar Icon to hide the tray icon by default.
+- Replaced SteamCMD-based background updates with Steam client queue nudging through appmanifest scheduling metadata.
+- Reduced scheduled queue checks to a one-minute cadence.
+
+### Compatibility
+
+- Existing module function names remain available for scripts and advanced CLI use.
 
 ## [1.1.0] - 2025-12-18
 

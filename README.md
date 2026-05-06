@@ -1,298 +1,188 @@
-# Steam Library Updater
+# Steam Update Manager
 
-An automated solution to keep your Steam library up-to-date without manual intervention.
+PowerShell-based Steam library update management with a Windows taskbar tray menu, scheduled background checks, Apps & Features registration, and a clean uninstall path.
 
-## Overview
+## Current Shape
 
-Steam Library Updater is a PowerShell-based automation tool that monitors your Steam games and automatically keeps them updated when Steam is running. It runs silently in the background, checking for updates at regular intervals and only updating when it won't impact your gaming experience.
+Steam Update Manager keeps the original CLI/update engine available, then adds a tray host for the most common controls.
 
-## Purpose
-
-Many Steam users have large game libraries and want their games to stay updated without:
-- Manually checking each game for updates
-- Having updates run while they're gaming (impacting performance)
-- Dealing with large downloads when they want to play
-- Managing update schedules manually
-
-Steam Library Updater solves these problems by providing a fully automated, configurable solution that respects your gaming time while keeping your library current.
-
-## Key Features
-
-- **🎮 Gaming-Aware**: By default, updates are paused when you're playing games to avoid impacting your connection or performance
-- **🔄 Fully Automated**: Runs automatically when Steam is running - no manual intervention needed
-- **🤖 Smart Auto-Detection**: Automatically finds your Steam installation and installed games
-- **📥 One-Click Setup**: Automatically downloads and installs SteamCMD during installation
-- **🎯 Easy Game Management**: Add games via auto-detection, search by name, or add all at once
-- **⚙️ Configurable**: Choose whether to allow updates during gaming, set check intervals, and select which games to monitor
-- **📦 Easy Installation**: Single-script installation that sets up everything including Add/Remove Programs entry
-- **🔔 Scheduled Updates**: Uses Windows Task Scheduler to run checks at regular intervals
-- **📊 Logging**: Keeps detailed logs of all update activities for troubleshooting
-- **🗑️ Clean Uninstall**: Full uninstaller that removes all traces from your system
+- Right-click taskbar menu with app name/version at the top
+- Dynamic `Status:` line for paused, waiting, gaming-paused, and ready states
+- Manual queued-update start from the tray menu
+- Run with Steam toggle from the tray menu
+- Configure dialog for update conditions
+- Automatic installed-game monitoring
+- Settings dialog for Start with Windows, Show Taskbar Icon, diagnostic logging, and theme selection
+- Logs folder access from Settings
+- About dialog with version and runtime paths
+- App icon for the tray, Start menu, desktop shortcut, and Apps & Features entry
+- Scheduled task for background update checks when Steam is running
+- Apps & Features registration for uninstall
+- ProgramData-backed config/log/cache storage
+- Size-controlled diagnostic logs
 
 ## Requirements
 
 - Windows 10 or later
-- PowerShell 5.1 or later
-- Administrator privileges (for installation)
-- Steam installed on your system
-- [SteamCMD](https://developer.valvesoftware.com/wiki/SteamCMD) (automatically downloaded during installation)
+- Windows PowerShell 5.1 or later
+- Administrator privileges for installation/uninstallation
+- Steam installed locally
+- SteamCMD is installed for legacy CLI compatibility; the GUI uses Steam client queue scheduling for normal queued client updates.
 
-## What's Automated
+The installer downloads SteamCMD from Valve's official SteamCMD package URL unless `-SkipSteamCmdDownload` is used.
 
-Steam Library Updater now automates almost everything that previously required manual work:
+## Install
 
-✅ **SteamCMD Installation**: Automatically downloads and installs SteamCMD during setup  
-✅ **Steam Path Detection**: Automatically finds your Steam installation  
-✅ **Library Detection**: Discovers all your Steam library folders  
-✅ **Game Discovery**: Scans and lists all installed Steam games  
-✅ **App ID Lookup**: Search for games by name to find their App ID  
-✅ **Bulk Operations**: Add all installed games with a single command  
-
-No more manual copying of files, searching for App IDs, or typing long install paths!
-
-## Installation
-
-### Quick Install
-
-1. **Download the repository**
-   ```powershell
-   # Clone or download the repository
-   git clone https://github.com/GhostwheeI/SteamLibraryUpdater.git
-   cd SteamLibraryUpdater
-   ```
-
-2. **Run the installer as Administrator**
-   ```powershell
-   # Right-click PowerShell and select "Run as Administrator"
-   .\Install-SteamLibraryUpdater.ps1
-   ```
-
-3. **Follow the installation prompts**
-   - Choose whether to allow updates during gaming (default: No)
-   - Choose whether to automatically download SteamCMD (recommended: Yes)
-   - Installed games are auto-detected and added to monitoring
-   - The installer will set up everything automatically
-
-### What Gets Installed
-
-- **Program Files**: `C:\Program Files\SteamLibraryUpdater\`
-  - PowerShell module with all update logic
-  - Configuration file
-  - Uninstaller script
-  - Logs directory
-  
-- **Windows Task Scheduler**: Scheduled task that runs every 5 minutes and respects your configured check interval
-
-- **Add/Remove Programs**: Entry for easy uninstallation
-
-## Configuration
-
-### Automated Setup (Recommended)
-
-The easiest way to configure Steam Library Updater is using the interactive configuration tool:
+Run PowerShell as Administrator:
 
 ```powershell
-# Run the configuration tool
-C:\Program Files\SteamLibraryUpdater\Configure-SteamLibraryUpdater.ps1
+.\Install-SteamLibraryUpdater.ps1
 ```
 
-The installer already auto-detects and adds installed games. Use the configuration tool to review or adjust the list.
+Installed application files:
 
-The configuration tool provides several automated options:
-- **Auto-detect installed games**: Automatically scans your Steam library and lets you select games to monitor
-- **Quick add all games**: Add all installed Steam games to monitoring with one click
-- **Search by name**: Find games by searching the Steam store
-- **Manual entry**: Enter game details manually if needed
-
-### Manual Setup
-
-You can also configure games manually if preferred:
-
-```powershell
-# Open PowerShell as Administrator
-cd "C:\Program Files\SteamLibraryUpdater"
-Import-Module .\SteamLibraryUpdater.psm1
-
-# Add a game to monitor manually
-Add-MonitoredGame -AppId "730" -Name "Counter-Strike 2" -InstallDir "C:\Steam\steamapps\common\Counter-Strike Global Offensive" -ProcessName "cs2"
-
-# View current configuration
-Get-SteamLibraryUpdaterConfig
+```text
+C:\Program Files\Steam-Update-Manager
 ```
 
-### Configuration Options
+Writable runtime data:
 
-Edit `C:\Program Files\SteamLibraryUpdater\Config.json`:
+```text
+C:\ProgramData\Steam-Update-Manager
+```
+
+The installer:
+
+- Copies the PowerShell module, tray host, configuration tool, and uninstaller
+- Creates the ProgramData config/log/cache folders
+- Grants normal users Modify access to the ProgramData folder
+- Detects Steam and installed games when possible
+- Installs SteamCMD by default
+- Creates the `SteamUpdateManager` scheduled task
+- Creates Start menu and desktop shortcuts that show the tray icon and open the menu
+- Registers the app in Apps & Features
+- Launches the tray menu unless `-DoNotLaunchTray` is used
+
+## Tray Menu
+
+Right-click the taskbar icon to access:
+
+- App header with version
+- `Status:` line
+- `Run with Steam` with `On` and `Off` submenu choices
+- `Manually Start All Queued Updates`
+- `Configure Update Conditions`
+- `Settings`
+- `About`
+- `Exit`
+
+Double-clicking the tray icon also starts a manual update check.
+
+## Configure
+
+The Configure dialog controls update conditions:
+
+- `When available` is checked by default.
+- `Allow updates while gaming` is unchecked by default.
+
+## Settings
+
+The tray settings dialog currently manages:
+
+- Start with Windows
+- Show Taskbar Icon
+- Diagnostic logging
+- Theme: `Auto`, `Light`, or `Dark`
+
+When Theme is `Auto`, Steam Update Manager reads the current Windows app theme and resolves to Light or Dark automatically. The tray menu checks this each time it opens.
+
+## Advanced Configuration
+
+Advanced settings live in:
+
+```text
+C:\ProgramData\Steam-Update-Manager\Config.json
+```
+
+Default configuration:
 
 ```json
 {
+  "AppName": "Steam Update Manager",
+  "AppVersion": "2.0.0",
+  "Theme": "Auto",
+  "StartWithWindows": true,
+  "ShowTaskbarIcon": false,
+  "DiagnosticLogging": true,
+  "MaxLogFileKB": 512,
+  "MaxLogFiles": 8,
   "UpdateDuringGaming": false,
-  "CheckIntervalMinutes": 60,
+  "UpdateCondition": "WhenAvailable",
+  "CheckIntervalMinutes": 1,
   "EnableAutoUpdate": true,
   "SteamInstallPath": "",
   "MonitoredGames": [],
-  "LastCheck": null
+  "LastCheck": null,
+  "Advanced": {
+    "UpdateCheckProvider": "https://api.steamcmd.net/v1/info",
+    "ScheduledTaskPollMinutes": 1,
+    "SteamCmdInstallPath": ""
+  }
 }
 ```
 
-- **UpdateDuringGaming**: Set to `true` to allow updates while gaming (default: `false`)
-- **CheckIntervalMinutes**: How often to check for updates (default: 60 minutes)
-- **EnableAutoUpdate**: Enable/disable automatic updates (default: `true`)
-- **MonitoredGames**: List of games to monitor for updates
+Settings not exposed in the tray UI are intentionally treated as advanced config.
 
-### Adding Games
+## CLI Compatibility
 
-The configuration tool makes adding games easy with several automated methods:
-
-**Option 1: Auto-detect (Easiest)**
-- Run `Configure-SteamLibraryUpdater.ps1`
-- Select option 4 to add a game
-- Choose option 1 to auto-detect from installed games
-- Select from the list of detected games
-
-**Option 2: Quick Add All**
-- Run `Configure-SteamLibraryUpdater.ps1`
-- Select option 6 to add all installed games at once
-
-**Option 3: Search by Name**
-- Run `Configure-SteamLibraryUpdater.ps1`
-- Select option 4 to add a game
-- Choose option 3 to search by name
-- Enter the game name to search
-
-**Option 4: Manual Entry**
-If you prefer manual control, you can still add games using PowerShell:
+The existing PowerShell module functions remain available:
 
 ```powershell
-Add-MonitoredGame -AppId "440" -Name "Team Fortress 2" -InstallDir "C:\Steam\steamapps\common\Team Fortress 2" -ProcessName "hl2"
+Import-Module "C:\Program Files\Steam-Update-Manager\SteamLibraryUpdater.psm1" -Force
+
+Get-SteamLibraryUpdaterConfig
+Set-SteamLibraryUpdaterConfig -Config $config
+Find-SteamInstallPath
+Get-SteamLibraryFolders
+Get-InstalledSteamGames
+Find-AppIdByName -GameName "Counter-Strike 2"
+Add-MonitoredGame -AppId "730" -Name "Counter-Strike 2" -InstallDir "C:\Steam\steamapps\common\Counter-Strike Global Offensive" -ProcessName "cs2"
+Remove-MonitoredGame -AppId "730"
+Start-SteamLibraryUpdate
+Start-SteamQueuedUpdates
 ```
 
-Find Steam App IDs from [SteamDB](https://steamdb.info/) or the Steam store URL if needed.
+The old `Configure-SteamLibraryUpdater.ps1` menu remains for advanced/manual game management.
 
-### Removing Games
+## Logging
+
+Logs are written to:
+
+```text
+C:\ProgramData\Steam-Update-Manager\Logs
+```
+
+Diagnostic logging can be disabled from Settings. Errors still write to the log. Log retention is controlled by:
+
+- `MaxLogFileKB`
+- `MaxLogFiles`
+
+## Uninstall
+
+Use Windows Settings > Apps > Installed apps, or run PowerShell as Administrator:
 
 ```powershell
-Remove-MonitoredGame -AppId "440"
+C:\Program Files\Steam-Update-Manager\Uninstall-SteamLibraryUpdater.ps1
 ```
 
-## Usage
+The uninstaller removes:
 
-Once installed, Steam Library Updater runs automatically in the background:
+- Scheduled task
+- Start with Windows entry
+- Apps & Features registry entry
+- Installed scripts
+- ProgramData config/log/cache folder unless you choose to keep it
 
-1. **When Steam starts**, the scheduled task begins checking for updates
-2. **Every 5 minutes**, it checks whether an update pass is due based on your interval
-3. **If a game needs updating** and conditions are met (not gaming, etc.), it updates automatically
-4. **All activity is logged** to `C:\Program Files\SteamLibraryUpdater\Logs\`
+## Notes
 
-### Manual Update Check
-
-You can manually trigger an update check:
-
-```powershell
-cd "C:\Program Files\SteamLibraryUpdater"
-Import-Module .\SteamLibraryUpdater.psm1
-Start-SteamLibraryUpdate -Verbose
-```
-
-## Uninstallation
-
-### Via Add/Remove Programs
-
-1. Open Windows Settings → Apps → Apps & features
-2. Search for "Steam Library Updater"
-3. Click Uninstall
-
-### Via PowerShell
-
-```powershell
-# Run as Administrator
-C:\Program Files\SteamLibraryUpdater\Uninstall-SteamLibraryUpdater.ps1
-```
-
-The uninstaller will:
-- Remove the scheduled task
-- Remove the Add/Remove Programs entry
-- Ask if you want to keep logs and configuration
-- Remove all installation files
-
-## Troubleshooting
-
-### Check Logs
-
-Logs are stored in: `C:\Program Files\SteamLibraryUpdater\Logs\`
-
-Each day creates a new log file: `SteamLibraryUpdater_YYYYMMDD.log`
-
-### Common Issues
-
-**Updates not running:**
-- Check that Steam is running
-- Verify the scheduled task exists: `Get-ScheduledTask -TaskName "SteamLibraryUpdater"`
-- Check logs for errors
-
-**SteamCMD errors:**
-- Ensure SteamCMD is installed in the correct directory
-- Run SteamCMD manually once to accept the Steam Subscriber Agreement
-
-**Game not updating:**
-- Verify the App ID is correct
-- Check that the install directory path is correct
-- Ensure you have sufficient disk space
-
-### Manual Testing
-
-Test the module functions:
-
-```powershell
-Import-Module "C:\Program Files\SteamLibraryUpdater\SteamLibraryUpdater.psm1" -Force
-
-# Check if Steam is running
-Test-SteamRunning
-
-# Check if any games are running
-Test-GameRunning
-
-# Check a specific game for updates
-Test-GameNeedsUpdate -AppId "730"
-```
-
-## Goals
-
-- ✅ Convert from batch script to PowerShell
-- ✅ Create installer for easy deployment
-- ✅ Add to Add/Remove Programs
-- ✅ Run automatically when Steam is running
-- ✅ Configurable gaming-aware updates
-- ✅ Background operation with logging
-- ✅ Clean uninstallation
-
-## Future Enhancements
-
-- [ ] GUI configuration tool
-- [ ] Update notifications
-- [ ] Bandwidth throttling options
-- [ ] Multiple Steam library support
-- [ ] Update scheduling by time of day
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit issues or pull requests.
-
-## License
-
-This project is provided as-is for use by the Steam community.
-
-## Credits
-
-Created by GhostwheeI
-
-## Support
-
-For issues, questions, or suggestions:
-- Open an issue on GitHub
-- Check the logs for detailed error information
-- Review the troubleshooting section
-
----
-
-**Note**: This tool uses SteamCMD and respects Steam's terms of service. Always ensure you have the legal right to update the games in your library.
+Steam Update Manager's tray workflow nudges Steam's own queued update schedule and opens the Steam Downloads view. The legacy CLI update path still uses SteamCMD and public Steam metadata endpoints. Make sure you have the legal right to update the games being managed.
