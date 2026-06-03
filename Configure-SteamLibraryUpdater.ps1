@@ -1,3 +1,281 @@
+
+function Add-Game-AutoDetect {
+    Write-Host ""
+    Write-Host "Scanning for installed Steam games..." -ForegroundColor Yellow
+
+    $installedGames = Get-InstalledSteamGames
+
+    if ($installedGames.Count -eq 0) {
+        Write-Host "No Steam games found. Make sure Steam is installed." -ForegroundColor Red
+        Read-Host "Press Enter to continue"
+        return
+    }
+
+    $config = Get-SteamLibraryUpdaterConfig
+    $monitoredAppIds = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($game in $config.MonitoredGames) {
+        $null = $monitoredAppIds.Add($game.AppId)
+    }
+
+    $availableGames = $installedGames | Where-Object { -not $monitoredAppIds.Contains($_.AppId) }
+
+    if ($availableGames.Count -eq 0) {
+        Write-Host "All installed games are already being monitored!" -ForegroundColor Yellow
+        Read-Host "Press Enter to continue"
+        return
+    }
+
+    Write-Host ""
+    Write-Host "Found $($availableGames.Count) games not yet monitored:" -ForegroundColor Green
+    Write-Host ""
+
+    $maxDisplayGames = 20
+    for ($i = 0; $i -lt [Math]::Min($availableGames.Count, $maxDisplayGames); $i++) {
+        $game = $availableGames[$i]
+        Write-Host "  [$($i + 1)] $($game.Name) (AppId: $($game.AppId))" -ForegroundColor White
+    }
+
+    if ($availableGames.Count -gt $maxDisplayGames) {
+        Write-Host "  ... and $($availableGames.Count - $maxDisplayGames) more" -ForegroundColor Gray
+    }
+
+    Write-Host ""
+    $selection = Read-Host "Enter number to add (or press Enter to cancel)"
+
+    if ($selection -match '^\d+$') {
+        $index = [int]$selection - 1
+        if ($index -ge 0 -and $index -lt $availableGames.Count) {
+            $selectedGame = $availableGames[$index]
+            Write-Host ""
+            Write-Host "Adding $($selectedGame.Name)..." -ForegroundColor Yellow
+            if (Add-MonitoredGame -AppId $selectedGame.AppId -Name $selectedGame.Name -InstallDir $selectedGame.InstallDir -ProcessName $selectedGame.ProcessName) {
+                Write-Host "Successfully added $($selectedGame.Name) to monitoring" -ForegroundColor Green
+            } else {
+                Write-Host "Failed to add game" -ForegroundColor Red
+            }
+        } else {
+            Write-Host "Invalid selection" -ForegroundColor Red
+        }
+    } else {
+        Write-Host "Operation cancelled" -ForegroundColor Gray
+    }
+    Read-Host "Press Enter to continue"
+}
+
+function Add-Game-Manual {
+    Write-Host ""
+    Write-Host "--- Manual Entry ---" -ForegroundColor Cyan
+    $appId = Read-Host "Enter Steam AppId (e.g. 730)"
+    if ([string]::IsNullOrWhiteSpace($appId)) { return }
+
+    $name = Read-Host "Enter game name (e.g. Counter-Strike 2)"
+    if ([string]::IsNullOrWhiteSpace($name)) { return }
+
+    $installDir = Read-Host "Enter install directory (e.g. C:\Steam\steamapps\common\Counter-Strike Global Offensive)"
+    if ([string]::IsNullOrWhiteSpace($installDir)) { return }
+
+    $processName = Read-Host "Enter process name without .exe (e.g. cs2) [Optional]"
+
+    if (Add-MonitoredGame -AppId $appId -Name $name -InstallDir $installDir -ProcessName $processName) {
+        Write-Host "Successfully added $name to monitoring" -ForegroundColor Green
+    } else {
+        Write-Host "Failed to add game" -ForegroundColor Red
+    }
+    Read-Host "Press Enter to continue"
+}
+
+function Add-Game-Search {
+    Write-Host ""
+    Write-Host "--- Search By Name ---" -ForegroundColor Cyan
+    $searchTerm = Read-Host "Enter game name to search for"
+    if ([string]::IsNullOrWhiteSpace($searchTerm)) { return }
+
+    Write-Host "Searching for $searchTerm..." -ForegroundColor Yellow
+    $searchResults = Find-AppIdByName -GameName $searchTerm
+
+    if (-not $searchResults) {
+        Write-Host "No games found matching '$searchTerm'" -ForegroundColor Red
+        Read-Host "Press Enter to continue"
+        return
+    }
+
+    Write-Host ""
+    Write-Host "Found $($searchResults.Count) matching games:" -ForegroundColor Green
+    Write-Host ""
+
+    for ($i = 0; $i -lt $searchResults.Count; $i++) {
+        $result = $searchResults[$i]
+        Write-Host "  [$($i + 1)] $($result.Name) (AppId: $($result.AppId))" -ForegroundColor White
+    }
+
+    Write-Host ""
+    $selection = Read-Host "Enter number to add (or press Enter to cancel)"
+
+    if ($selection -match '^\d+$') {
+        $index = [int]$selection - 1
+        if ($index -ge 0 -and $index -lt $searchResults.Count) {
+            $searchResult = $searchResults[$index]
+            $installedGames = Get-InstalledSteamGames
+            $installedGame = $installedGames | Where-Object { $_.AppId -eq $searchResult.AppId }
+
+            if ($installedGame) {
+                Write-Host "Adding $($installedGame.Name)..." -ForegroundColor Yellow
+                if (Add-MonitoredGame -AppId $installedGame.AppId -Name $installedGame.Name -InstallDir $installedGame.InstallDir -ProcessName $installedGame.ProcessName) {
+                    Write-Host "Successfully added $($installedGame.Name) to monitoring" -ForegroundColor Green
+                } else {
+                    Write-Host "Failed to add game" -ForegroundColor Red
+                }
+            } else {
+                Write-Host "Could not find install details for $($searchResult.Name)" -ForegroundColor Red
+            }
+        } else {
+            Write-Host "Invalid selection" -ForegroundColor Red
+        }
+    } else {
+        Write-Host "Operation cancelled" -ForegroundColor Gray
+    }
+    Read-Host "Press Enter to continue"
+}
+
+
+function Add-Game-AutoDetect {
+    Write-Host ""
+    Write-Host "Scanning for installed Steam games..." -ForegroundColor Yellow
+
+    $installedGames = Get-InstalledSteamGames
+
+    if ($installedGames.Count -eq 0) {
+        Write-Host "No Steam games found. Make sure Steam is installed." -ForegroundColor Red
+        Read-Host "Press Enter to continue"
+        return
+    }
+
+    $config = Get-SteamLibraryUpdaterConfig
+    $monitoredAppIds = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($game in $config.MonitoredGames) {
+        $null = $monitoredAppIds.Add($game.AppId)
+    }
+
+    $availableGames = $installedGames | Where-Object { -not $monitoredAppIds.Contains($_.AppId) }
+
+    if ($availableGames.Count -eq 0) {
+        Write-Host "All installed games are already being monitored!" -ForegroundColor Yellow
+        Read-Host "Press Enter to continue"
+        return
+    }
+
+    Write-Host ""
+    Write-Host "Found $($availableGames.Count) games not yet monitored:" -ForegroundColor Green
+    Write-Host ""
+
+    $maxDisplayGames = 20
+    for ($i = 0; $i -lt [Math]::Min($availableGames.Count, $maxDisplayGames); $i++) {
+        $game = $availableGames[$i]
+        Write-Host "  [$($i + 1)] $($game.Name) (AppId: $($game.AppId))" -ForegroundColor White
+    }
+
+    if ($availableGames.Count -gt $maxDisplayGames) {
+        Write-Host "  ... and $($availableGames.Count - $maxDisplayGames) more" -ForegroundColor Gray
+    }
+
+    Write-Host ""
+    $selection = Read-Host "Enter number to add (or press Enter to cancel)"
+
+    if ($selection -match '^\d+$') {
+        $index = [int]$selection - 1
+        if ($index -ge 0 -and $index -lt $availableGames.Count) {
+            $selectedGame = $availableGames[$index]
+            Write-Host ""
+            Write-Host "Adding $($selectedGame.Name)..." -ForegroundColor Yellow
+            if (Add-MonitoredGame -AppId $selectedGame.AppId -Name $selectedGame.Name -InstallDir $selectedGame.InstallDir -ProcessName $selectedGame.ProcessName) {
+                Write-Host "Successfully added $($selectedGame.Name) to monitoring" -ForegroundColor Green
+            } else {
+                Write-Host "Failed to add game" -ForegroundColor Red
+            }
+        } else {
+            Write-Host "Invalid selection" -ForegroundColor Red
+        }
+    } else {
+        Write-Host "Operation cancelled" -ForegroundColor Gray
+    }
+    Read-Host "Press Enter to continue"
+}
+
+function Add-Game-Manual {
+    Write-Host ""
+    Write-Host "--- Manual Entry ---" -ForegroundColor Cyan
+    $appId = Read-Host "Enter Steam AppId (e.g. 730)"
+    if ([string]::IsNullOrWhiteSpace($appId)) { return }
+
+    $name = Read-Host "Enter game name (e.g. Counter-Strike 2)"
+    if ([string]::IsNullOrWhiteSpace($name)) { return }
+
+    $installDir = Read-Host "Enter install directory (e.g. C:\Steam\steamapps\common\Counter-Strike Global Offensive)"
+    if ([string]::IsNullOrWhiteSpace($installDir)) { return }
+
+    $processName = Read-Host "Enter process name without .exe (e.g. cs2) [Optional]"
+
+    if (Add-MonitoredGame -AppId $appId -Name $name -InstallDir $installDir -ProcessName $processName) {
+        Write-Host "Successfully added $name to monitoring" -ForegroundColor Green
+    } else {
+        Write-Host "Failed to add game" -ForegroundColor Red
+    }
+    Read-Host "Press Enter to continue"
+}
+
+function Add-Game-Search {
+    Write-Host ""
+    Write-Host "--- Search By Name ---" -ForegroundColor Cyan
+    $searchTerm = Read-Host "Enter game name to search for"
+    if ([string]::IsNullOrWhiteSpace($searchTerm)) { return }
+
+    Write-Host "Searching for $searchTerm..." -ForegroundColor Yellow
+    $searchResults = Find-AppIdByName -GameName $searchTerm
+
+    if (-not $searchResults) {
+        Write-Host "No games found matching '$searchTerm'" -ForegroundColor Red
+        Read-Host "Press Enter to continue"
+        return
+    }
+
+    Write-Host ""
+    Write-Host "Found $($searchResults.Count) matching games:" -ForegroundColor Green
+    Write-Host ""
+
+    for ($i = 0; $i -lt $searchResults.Count; $i++) {
+        $result = $searchResults[$i]
+        Write-Host "  [$($i + 1)] $($result.Name) (AppId: $($result.AppId))" -ForegroundColor White
+    }
+
+    Write-Host ""
+    $selection = Read-Host "Enter number to add (or press Enter to cancel)"
+
+    if ($selection -match '^\d+$') {
+        $index = [int]$selection - 1
+        if ($index -ge 0 -and $index -lt $searchResults.Count) {
+            $searchResult = $searchResults[$index]
+            $installedGames = Get-InstalledSteamGames
+            $installedGame = $installedGames | Where-Object { $_.AppId -eq $searchResult.AppId }
+
+            if ($installedGame) {
+                Write-Host "Adding $($installedGame.Name)..." -ForegroundColor Yellow
+                if (Add-MonitoredGame -AppId $installedGame.AppId -Name $installedGame.Name -InstallDir $installedGame.InstallDir -ProcessName $installedGame.ProcessName) {
+                    Write-Host "Successfully added $($installedGame.Name) to monitoring" -ForegroundColor Green
+                } else {
+                    Write-Host "Failed to add game" -ForegroundColor Red
+                }
+            } else {
+                Write-Host "Could not find install details for $($searchResult.Name)" -ForegroundColor Red
+            }
+        } else {
+            Write-Host "Invalid selection" -ForegroundColor Red
+        }
+    } else {
+        Write-Host "Operation cancelled" -ForegroundColor Gray
+    }
+    Read-Host "Press Enter to continue"
+}
+
 #Requires -Version 5.1
 
 <#
@@ -129,7 +407,6 @@ function Add-Game {
     Write-Host "=== Add Game to Monitor ===" -ForegroundColor Cyan
     Write-Host ""
     
-    # Offer to auto-detect or manually enter
     Write-Host "How would you like to add the game?" -ForegroundColor Yellow
     Write-Host "  [1] Auto-detect from installed games" -ForegroundColor White
     Write-Host "  [2] Enter manually" -ForegroundColor White
@@ -139,195 +416,14 @@ function Add-Game {
     $choice = Read-Host "Enter choice (1-3)"
     
     switch ($choice) {
-        "1" {
-            # Auto-detect installed games
-            Write-Host ""
-            Write-Host "Scanning for installed Steam games..." -ForegroundColor Yellow
-            
-            $installedGames = Get-InstalledSteamGames
-            
-            if ($installedGames.Count -eq 0) {
-                Write-Host "No Steam games found. Make sure Steam is installed." -ForegroundColor Red
-                Read-Host "Press Enter to continue"
-                return
-            }
-            
-            # Get currently monitored games to filter them out
-            $config = Get-SteamLibraryUpdaterConfig
-            $monitoredAppIds = $config.MonitoredGames | ForEach-Object { $_.AppId }
-            
-            # Filter out already monitored games
-            $availableGames = $installedGames | Where-Object { $monitoredAppIds -notcontains $_.AppId }
-            
-            if ($availableGames.Count -eq 0) {
-                Write-Host "All installed games are already being monitored!" -ForegroundColor Yellow
-                Read-Host "Press Enter to continue"
-                return
-            }
-            
-            Write-Host ""
-            Write-Host "Found $($availableGames.Count) games not yet monitored:" -ForegroundColor Green
-            Write-Host ""
-            
-            $maxDisplayGames = 20
-            for ($i = 0; $i -lt [Math]::Min($availableGames.Count, $maxDisplayGames); $i++) {
-                $game = $availableGames[$i]
-                Write-Host "  [$($i + 1)] $($game.Name) (AppId: $($game.AppId))" -ForegroundColor White
-            }
-            
-            if ($availableGames.Count -gt $maxDisplayGames) {
-                Write-Host "  ... and $($availableGames.Count - $maxDisplayGames) more" -ForegroundColor Gray
-            }
-            
-            Write-Host ""
-            $selection = Read-Host "Enter number to add (or press Enter to cancel)"
-            
-            if ($selection -match '^\d+$') {
-                $index = [int]$selection - 1
-                if ($index -ge 0 -and $index -lt $availableGames.Count) {
-                    $selectedGame = $availableGames[$index]
-                    
-                    Write-Host ""
-                    Write-Host "Adding $($selectedGame.Name)..." -ForegroundColor Yellow
-                    
-                    if (Add-MonitoredGame -AppId $selectedGame.AppId -Name $selectedGame.Name -InstallDir $selectedGame.InstallDir -ProcessName $selectedGame.ProcessName) {
-                        Write-Host "Successfully added $($selectedGame.Name) to monitoring" -ForegroundColor Green
-                    }
-                    else {
-                        Write-Host "Failed to add game" -ForegroundColor Red
-                    }
-                }
-                else {
-                    Write-Host "Invalid selection" -ForegroundColor Red
-                }
-            }
-            else {
-                Write-Host "Cancelled" -ForegroundColor Yellow
-            }
-        }
-        "2" {
-            # Manual entry
-            Write-Host ""
-            Write-Host "You can find Steam App IDs at https://steamdb.info/" -ForegroundColor Gray
-            Write-Host ""
-            
-            $appId = Read-Host "Enter Steam App ID (e.g., 730 for CS2)"
-            if (-not $appId) {
-                Write-Host "Cancelled" -ForegroundColor Yellow
-                Read-Host "Press Enter to continue"
-                return
-            }
-            
-            $name = Read-Host "Enter game name (e.g., Counter-Strike 2)"
-            if (-not $name) {
-                Write-Host "Cancelled" -ForegroundColor Yellow
-                Read-Host "Press Enter to continue"
-                return
-            }
-            
-            $installDir = Read-Host "Enter full install directory path"
-            if (-not $installDir -or -not (Test-Path $installDir)) {
-                Write-Host "Invalid directory path - directory does not exist" -ForegroundColor Red
-                Read-Host "Press Enter to continue"
-                return
-            }
-            
-            # Validate it's a directory, not a file
-            if (-not (Test-Path $installDir -PathType Container)) {
-                Write-Host "Invalid path - must be a directory, not a file" -ForegroundColor Red
-                Read-Host "Press Enter to continue"
-                return
-            }
-            
-            # Warn if directory doesn't look like a Steam game directory
-            $steamIndicators = @("*.exe", "*.dll", "steam_appid.txt")
-            $hasIndicators = $false
-            foreach ($pattern in $steamIndicators) {
-                if (Get-ChildItem -Path $installDir -Filter $pattern -File -ErrorAction SilentlyContinue) {
-                    $hasIndicators = $true
-                    break
-                }
-            }
-            
-            if (-not $hasIndicators) {
-                Write-Host "Warning: This directory doesn't appear to contain game files" -ForegroundColor Yellow
-                $confirm = Read-Host "Continue anyway? (y/N)"
-                if ($confirm -notmatch '^[Yy]') {
-                    Write-Host "Cancelled" -ForegroundColor Yellow
-                    Read-Host "Press Enter to continue"
-                    return
-                }
-            }
-            
-            $processName = Read-Host "Enter game process name (optional, press Enter to skip)"
-            
-            Write-Host ""
-            Write-Host "Adding game to monitoring..." -ForegroundColor Yellow
-            
-            if (Add-MonitoredGame -AppId $appId -Name $name -InstallDir $installDir -ProcessName $processName) {
-                Write-Host "Successfully added $name to monitoring" -ForegroundColor Green
-            }
-            else {
-                Write-Host "Failed to add game" -ForegroundColor Red
-            }
-        }
-        "3" {
-            # Search by name
-            Write-Host ""
-            $gameName = Read-Host "Enter game name to search for"
-            
-            if (-not $gameName) {
-                Write-Host "Cancelled" -ForegroundColor Yellow
-                Read-Host "Press Enter to continue"
-                return
-            }
-            
-            Write-Host "Searching for '$gameName'..." -ForegroundColor Yellow
-            
-            $searchResult = Find-AppIdByName -GameName $gameName
-            
-            if ($searchResult) {
-                Write-Host ""
-                Write-Host "Found: $($searchResult.Name) (AppId: $($searchResult.AppId))" -ForegroundColor Green
-                Write-Host ""
-                
-                $confirm = Read-Host "Is this the correct game? (Y/n)"
-                if ($confirm -notmatch '^[Nn]') {
-                    # Try to find it in installed games
-                    $installedGames = Get-InstalledSteamGames
-                    $installedGame = $installedGames | Where-Object { $_.AppId -eq $searchResult.AppId }
-                    
-                    if ($installedGame) {
-                        Write-Host ""
-                        Write-Host "Game found in your Steam library!" -ForegroundColor Green
-                        Write-Host "Install directory: $($installedGame.InstallDir)" -ForegroundColor Cyan
-                        
-                        if (Add-MonitoredGame -AppId $installedGame.AppId -Name $installedGame.Name -InstallDir $installedGame.InstallDir -ProcessName $installedGame.ProcessName) {
-                            Write-Host "Successfully added $($installedGame.Name) to monitoring" -ForegroundColor Green
-                        }
-                        else {
-                            Write-Host "Failed to add game" -ForegroundColor Red
-                        }
-                    }
-                    else {
-                        Write-Host ""
-                        Write-Host "Game is not installed on this system." -ForegroundColor Yellow
-                        Write-Host "Please install it through Steam first, then add it to monitoring." -ForegroundColor Yellow
-                    }
-                }
-            }
-            else {
-                Write-Host "No results found for '$gameName'" -ForegroundColor Red
-                Write-Host "Try searching at https://steamdb.info/ and use manual entry" -ForegroundColor Yellow
-            }
-        }
+        "1" { Add-Game-AutoDetect }
+        "2" { Add-Game-Manual }
+        "3" { Add-Game-Search }
         default {
             Write-Host "Invalid choice" -ForegroundColor Red
+            Read-Host "Press Enter to continue"
         }
     }
-    
-    Write-Host ""
-    Read-Host "Press Enter to continue"
 }
 
 function Remove-Game {
@@ -472,10 +568,13 @@ function Quick-AddAll {
     
     # Get currently monitored games
     $config = Get-SteamLibraryUpdaterConfig
-    $monitoredAppIds = $config.MonitoredGames | ForEach-Object { $_.AppId }
+    $monitoredAppIds = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($game in $config.MonitoredGames) {
+        $null = $monitoredAppIds.Add($game.AppId)
+    }
     
     # Filter out already monitored games
-    $availableGames = $installedGames | Where-Object { $monitoredAppIds -notcontains $_.AppId }
+    $availableGames = $installedGames | Where-Object { -not $monitoredAppIds.Contains($_.AppId) }
     
     if ($availableGames.Count -eq 0) {
         Write-Host "All installed games are already being monitored!" -ForegroundColor Yellow

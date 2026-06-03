@@ -26,11 +26,6 @@ $UninstallGuid = "{B4C8A9E2-1234-5678-9ABC-DEF012345678}"
 $StartMenuShortcutPath = Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\Steam Update Manager.lnk"
 $DesktopShortcutPath = Join-Path ([Environment]::GetFolderPath("Desktop")) "Steam Update Manager.lnk"
 
-function Test-Administrator {
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = [Security.Principal.WindowsPrincipal]$identity
-    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-}
 
 function Write-ProgressLine {
     param(
@@ -50,6 +45,7 @@ if (-not $Silent) {
     Write-Host ""
 }
 
+Import-Module "$PSScriptRoot\SteamLibraryUpdater.psm1" -Force
 if (-not (Test-Administrator)) {
     Write-Host "ERROR: This script must be run as Administrator" -ForegroundColor Red
     if (-not $Silent) {

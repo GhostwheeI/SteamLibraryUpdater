@@ -20,11 +20,6 @@ $script:IconPath = Join-Path $PSScriptRoot "AppIconTransparent.ico"
 $script:PngIconPath = Join-Path $PSScriptRoot "AppIconTransparent.png"
 $script:IconBitmap = $null
 
-function Get-WindowsPowerShellPath {
-    $windowsPowerShell = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
-    if (Test-Path $windowsPowerShell) {
-        return $windowsPowerShell
-    }
 
     return "powershell.exe"
 }
@@ -471,11 +466,6 @@ function Invoke-ManualUpdateCheck {
     }
 }
 
-function Add-AllInstalledGames {
-    try {
-        $config = Get-SteamLibraryUpdaterConfig
-        $installedGames = Get-InstalledSteamGames -SteamPath $config.SteamInstallPath
-        $existingAppIds = @($config.MonitoredGames | ForEach-Object { $_.AppId })
         $added = 0
 
         foreach ($game in $installedGames) {
@@ -538,7 +528,8 @@ function Open-Path {
     )
 
     if (Test-Path $Path) {
-        Start-Process -FilePath $Path | Out-Null
+        $escapedPath = $Path -replace '"', '""'
+        Start-Process -FilePath "explorer.exe" -ArgumentList "`"$escapedPath`"" | Out-Null
     }
 }
 
