@@ -36,17 +36,7 @@ function Write-Step {
     Write-Host $Message -ForegroundColor Yellow
 }
 
-function Test-Administrator {
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = [Security.Principal.WindowsPrincipal]$identity
-    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-}
 
-function Get-WindowsPowerShellPath {
-    $windowsPowerShell = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
-    if (Test-Path $windowsPowerShell) {
-        return $windowsPowerShell
-    }
 
     return "powershell.exe"
 }
@@ -58,7 +48,9 @@ function Grant-DataFolderAccess {
     )
 
     try {
-        $users = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-545")
+        # Grant Authenticated Users (S-1-5-11) instead of Everyone/Users
+        # Restrict to Write/Read instead of Modify when possible, but Modify is needed for logs/cache deletion
+        $users = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-11")
         $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
             $users,
             "Modify",
@@ -67,6 +59,9 @@ function Grant-DataFolderAccess {
             "Allow"
         )
         $acl = Get-Acl -Path $Path
+
+        # Protect the ACL from inheritance from parent if it's too permissive, but keep existing explicit rules
+        $acl.SetAccessRuleProtection($false, $true)
         $acl.SetAccessRule($rule)
         Set-Acl -Path $Path -AclObject $acl
     }
@@ -97,7 +92,7 @@ function Install-SteamCmd {
         }
 
         Write-Host "  Downloading SteamCMD from Valve..." -ForegroundColor Yellow
-        Invoke-WebRequest -Uri $steamCmdUrl -OutFile $steamCmdZip -UseBasicParsing -ErrorAction Stop
+        Invoke-WebRequest -Uri $steamCmdUrl -OutFile $steamCmdZip -ErrorAction Stop
         Expand-Archive -Path $steamCmdZip -DestinationPath $steamCmdDir -Force
         Remove-Item $steamCmdZip -Force -ErrorAction SilentlyContinue
 
@@ -160,6 +155,7 @@ Write-Host " $ProductName - Installation" -ForegroundColor Cyan
 Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host ""
 
+Import-Module "$PSScriptRoot\SteamLibraryUpdater.psm1" -Force
 if (-not (Test-Administrator)) {
     Write-Host "ERROR: This script must be run as Administrator" -ForegroundColor Red
     Read-Host "Press Enter to exit"

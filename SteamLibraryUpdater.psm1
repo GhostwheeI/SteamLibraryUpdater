@@ -246,14 +246,16 @@ function Test-GameRunning {
     
     $config = Get-SteamLibraryUpdaterConfig
     
-    # Get all processes once for efficiency
-    $allProcesses = Get-Process -ErrorAction SilentlyContinue
+    # Get all process names once for efficiency
+    $runningProcessNames = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($p in Get-Process -ErrorAction SilentlyContinue) {
+        $null = $runningProcessNames.Add($p.ProcessName)
+    }
     
     # Check if any monitored game processes are running
     foreach ($game in $config.MonitoredGames) {
         if ($game.ProcessName) {
-            $process = $allProcesses | Where-Object { $_.ProcessName -eq $game.ProcessName }
-            if ($null -ne $process) {
+            if ($runningProcessNames.Contains($game.ProcessName)) {
                 Write-Log "Game running: $($game.ProcessName)" -Level Info
                 return $true
             }
@@ -287,14 +289,19 @@ function Get-SteamAppInfo {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        [string]$AppId
+        [string[]]$AppId
     )
     
-    # Validate AppId is numeric to prevent injection
-    if ($AppId -notmatch '^\d+$') {
-        Write-Log "Invalid AppId format: $AppId. Must be numeric." -Level Error
-        return $null
+    $validIds = @()
+    foreach ($id in $AppId) {
+        if ($id -match '^\d+$') {
+            $validIds += $id
+        } else {
+            Write-Log "Invalid AppId format: $id. Must be numeric." -Level Error
+        }
     }
+    if ($validIds.Count -eq 0) { return $null }
+    $appIdString = $validIds -join ','
     
     $config = Get-SteamLibraryUpdaterConfig
     $provider = "https://api.steamcmd.net/v1/info"
@@ -345,7 +352,14 @@ function Test-GameNeedsUpdate {
     Write-Log "Checking for updates for App ID: $AppId" -Level Info
     
     # Get current app info from Steam
-    $appInfo = Get-SteamAppInfo -AppId $AppId
+    $appInfo = $AppInfoData
+    if ($null -eq $appInfo) {
+        $appInfoResponse = Get-SteamAppInfo -AppId $AppId
+        if ($null -ne $appInfoResponse) {
+            $appInfo = $appInfoResponse.$AppId
+        }
+    }
+
     if ($null -eq $appInfo) {
         Write-Log "Failed to retrieve app info for $AppId" -Level Error
         return $false
@@ -498,7 +512,9 @@ function Start-SteamLibraryUpdate {
         try {
             if (Test-GameNeedsUpdate -AppId $game.AppId) {
                 Write-Log "Updating game: $($game.Name) (AppId: $($game.AppId))" -Level Info
-                $result = Update-SteamGame -AppId $game.AppId -InstallDir $game.InstallDir
+                $gameAppInfo = if ($null -ne $batchAppInfo) { $batchAppInfo.$($game.AppId) } else { $null }
+                $gameAppInfo = if ($null -ne $batchAppInfo) { $batchAppInfo.$($game.AppId) } else { $null }
+                $result = Update-SteamGame -AppId $game.AppId -InstallDir $game.InstallDir -AppInfoData $gameAppInfo -AppInfoData $gameAppInfo
                 
                 if ($result) {
                     Write-Log "Successfully updated: $($game.Name)" -Level Info
@@ -713,6 +729,11 @@ function Get-InstalledSteamGames {
     $libraries = Get-SteamLibraryFolders -SteamPath $SteamPath
     $games = @()
     
+    # Pre-compile regexes outside loops
+    $regexAppId = [regex]'"appid"\s+"(\d+)"'
+    $regexName = [regex]'"name"\s+"([^"]+)"'
+    $regexInstallDir = [regex]'"installdir"\s+"([^"]+)"'
+
     foreach ($library in $libraries) {
         # Look for .acf manifest files
         $manifestFiles = Get-ChildItem -Path $library -Filter "appmanifest_*.acf" -File -ErrorAction SilentlyContinue
@@ -722,9 +743,12 @@ function Get-InstalledSteamGames {
                 $content = Get-Content $manifest.FullName -Raw
                 
                 # Parse basic ACF format
-                $appId = if ($content -match '"appid"\s+"(\d+)"') { $matches[1] } else { $null }
-                $name = if ($content -match '"name"\s+"([^"]+)"') { $matches[1] } else { $null }
-                $installDir = if ($content -match '"installdir"\s+"([^"]+)"') { $matches[1] } else { $null }
+                $matchAppId = $regexAppId.Match($content)
+                $appId = if ($matchAppId.Success) { $matchAppId.Groups[1].Value } else { $null }
+                $matchName = $regexName.Match($content)
+                $name = if ($matchName.Success) { $matchName.Groups[1].Value } else { $null }
+                $matchInstallDir = $regexInstallDir.Match($content)
+                $installDir = if ($matchInstallDir.Success) { $matchInstallDir.Groups[1].Value } else { $null }
                 
                 if ($appId -and $name -and $installDir) {
                     $fullInstallPath = Join-Path $library "common\$installDir"
@@ -867,8 +891,14 @@ function Start-SteamQueuedUpdates {
     foreach ($manifest in $manifestFiles) {
         try {
             $content = Get-Content -LiteralPath $manifest.FullName -Raw
-            $appid = Get-AcfValue -Content $content -Name "appid"
-            $name = Get-AcfValue -Content $content -Name "name"
+
+            # Use pre-compiled regexes where possible to avoid repeated regex parsing inside Get-AcfValue
+            $matchAppId = $regexAppId.Match($content)
+            $appid = if ($matchAppId.Success) { $matchAppId.Groups[1].Value } else { $null }
+
+            $matchName = $regexName.Match($content)
+            $name = if ($matchName.Success) { $matchName.Groups[1].Value } else { $null }
+
             $bytesToDownload = [int64]((Get-AcfValue -Content $content -Name "BytesToDownload") -as [int64])
             $scheduledAutoUpdate = [int64]((Get-AcfValue -Content $content -Name "ScheduledAutoUpdate") -as [int64])
 
@@ -984,3 +1014,19 @@ Export-ModuleMember -Function @(
     'Start-SteamQueuedUpdates',
     'Find-AppIdByName'
 )
+
+function Test-Administrator {
+    $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object System.Security.Principal.WindowsPrincipal($identity)
+    return $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+Export-ModuleMember -Function Test-Administrator
+
+function Get-WindowsPowerShellPath {
+    $powershellPath = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
+    if (Test-Path $powershellPath) {
+        return $powershellPath
+    }
+    return "powershell.exe"
+}
+Export-ModuleMember -Function Get-WindowsPowerShellPath
