@@ -90,7 +90,7 @@ Check what the updater has been doing:
 
 ```powershell
 # View today's log
-notepad "C:\Program Files\Steam-Update-Manager\Logs\SteamLibraryUpdater_$(Get-Date -Format 'yyyyMMdd').log"
+notepad "C:\ProgramData\Steam-Update-Manager\Logs\SteamUpdateManager_$(Get-Date -Format 'yyyyMMdd').log"
 ```
 
 ## Uninstalling
@@ -111,7 +111,7 @@ C:\Program Files\Steam-Update-Manager\Uninstall-SteamLibraryUpdater.ps1
 ## Need Help?
 
 - Check the [full README](README.md) for detailed documentation
-- Review the logs in `C:\Program Files\Steam-Update-Manager\Logs\`
+- Review the logs in `C:\ProgramData\Steam-Update-Manager\Logs\`
 - Open an issue on GitHub
 
 ## Pro Tips

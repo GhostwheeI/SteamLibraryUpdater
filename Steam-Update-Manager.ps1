@@ -20,7 +20,11 @@ $script:IconPath = Join-Path $PSScriptRoot "AppIconTransparent.ico"
 $script:PngIconPath = Join-Path $PSScriptRoot "AppIconTransparent.png"
 $script:IconBitmap = $null
 
-
+function Get-WindowsPowerShellPath {
+    $powershellPath = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
+    if (Test-Path $powershellPath) {
+        return $powershellPath
+    }
     return "powershell.exe"
 }
 
@@ -459,31 +463,6 @@ function Invoke-ManualUpdateCheck {
         Write-Log "Failed to launch manual update check: $_" -Level Error
         [System.Windows.Forms.MessageBox]::Show(
             "The update check could not be started. Check the log for details.",
-            $script:AppName,
-            [System.Windows.Forms.MessageBoxButtons]::OK,
-            [System.Windows.Forms.MessageBoxIcon]::Error
-        ) | Out-Null
-    }
-}
-
-        $added = 0
-
-        foreach ($game in $installedGames) {
-            if ($existingAppIds -contains $game.AppId) {
-                continue
-            }
-
-            if (Add-MonitoredGame -AppId $game.AppId -Name $game.Name -InstallDir $game.InstallDir -ProcessName $game.ProcessName) {
-                $added++
-            }
-        }
-
-        $script:NotifyIcon.ShowBalloonTip(3000, $script:AppName, "Added $added installed game(s) to monitoring.", [System.Windows.Forms.ToolTipIcon]::Info)
-    }
-    catch {
-        Write-Log "Failed to add installed games from tray UI: $_" -Level Error
-        [System.Windows.Forms.MessageBox]::Show(
-            "Installed games could not be added. Check the log for details.",
             $script:AppName,
             [System.Windows.Forms.MessageBoxButtons]::OK,
             [System.Windows.Forms.MessageBoxIcon]::Error

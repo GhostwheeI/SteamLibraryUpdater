@@ -316,7 +316,7 @@ if ($success) {
 
 ```powershell
 # View today's log
-$logFile = "C:\Program Files\Steam-Update-Manager\Logs\SteamLibraryUpdater_$(Get-Date -Format 'yyyyMMdd').log"
+$logFile = "C:\ProgramData\Steam-Update-Manager\Logs\SteamUpdateManager_$(Get-Date -Format 'yyyyMMdd').log"
 
 if (Test-Path $logFile) {
     # Show last 20 lines
@@ -483,5 +483,5 @@ if (Test-Path $backupPath) {
 
 - Check the [README](README.md) for detailed documentation
 - See the [Quick Start Guide](QUICKSTART.md) for installation
-- Review logs in `C:\Program Files\Steam-Update-Manager\Logs\`
+- Review logs in `C:\ProgramData\Steam-Update-Manager\Logs\`
 - Open an issue on GitHub for additional support

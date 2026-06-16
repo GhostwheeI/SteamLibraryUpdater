@@ -352,12 +352,10 @@ function Test-GameNeedsUpdate {
     Write-Log "Checking for updates for App ID: $AppId" -Level Info
     
     # Get current app info from Steam
-    $appInfo = $AppInfoData
-    if ($null -eq $appInfo) {
-        $appInfoResponse = Get-SteamAppInfo -AppId $AppId
-        if ($null -ne $appInfoResponse) {
-            $appInfo = $appInfoResponse.$AppId
-        }
+    $appInfo = $null
+    $appInfoResponse = Get-SteamAppInfo -AppId $AppId
+    if ($null -ne $appInfoResponse) {
+        $appInfo = $appInfoResponse.$AppId
     }
 
     if ($null -eq $appInfo) {
@@ -512,9 +510,7 @@ function Start-SteamLibraryUpdate {
         try {
             if (Test-GameNeedsUpdate -AppId $game.AppId) {
                 Write-Log "Updating game: $($game.Name) (AppId: $($game.AppId))" -Level Info
-                $gameAppInfo = if ($null -ne $batchAppInfo) { $batchAppInfo.$($game.AppId) } else { $null }
-                $gameAppInfo = if ($null -ne $batchAppInfo) { $batchAppInfo.$($game.AppId) } else { $null }
-                $result = Update-SteamGame -AppId $game.AppId -InstallDir $game.InstallDir -AppInfoData $gameAppInfo -AppInfoData $gameAppInfo
+                $result = Update-SteamGame -AppId $game.AppId -InstallDir $game.InstallDir
                 
                 if ($result) {
                     Write-Log "Successfully updated: $($game.Name)" -Level Info
