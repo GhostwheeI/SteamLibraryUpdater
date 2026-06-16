@@ -505,10 +505,20 @@ function Start-SteamLibraryUpdate {
         return
     }
     
+    # Pre-fetch app info for all monitored games to reduce API calls
+    $batchAppIds = @($config.MonitoredGames | ForEach-Object { $_.AppId })
+    $batchAppInfoResponse = Get-SteamAppInfo -AppId $batchAppIds
+    $batchAppInfo = $null
+    if ($null -ne $batchAppInfoResponse -and $batchAppInfoResponse.PSObject.Properties['status'] -and $batchAppInfoResponse.status -eq 'success') {
+        $batchAppInfo = $batchAppInfoResponse.data
+    }
+
     # Update each monitored game
     foreach ($game in $config.MonitoredGames) {
         try {
-            if (Test-GameNeedsUpdate -AppId $game.AppId) {
+            $gameAppInfo = if ($null -ne $batchAppInfo) { $batchAppInfo.$($game.AppId) } else { $null }
+
+            if (Test-GameNeedsUpdate -AppId $game.AppId -AppInfoData $gameAppInfo) {
                 Write-Log "Updating game: $($game.Name) (AppId: $($game.AppId))" -Level Info
                 $result = Update-SteamGame -AppId $game.AppId -InstallDir $game.InstallDir
                 

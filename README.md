@@ -1,6 +1,22 @@
 # Steam Update Manager
 
+[![PowerShell Version](https://img.shields.io/badge/PowerShell-5.1+-blue.svg)](https://microsoft.com/PowerShell)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 PowerShell-based Steam library update management with a Windows taskbar tray menu, scheduled background checks, Apps & Features registration, and a clean uninstall path.
+
+## Table of Contents
+- [Current Shape](#current-shape)
+- [Requirements](#requirements)
+- [Install](#install)
+- [Tray Menu](#tray-menu)
+- [Configure](#configure)
+- [Settings](#settings)
+- [Advanced Configuration](#advanced-configuration)
+- [CLI Compatibility](#cli-compatibility)
+- [Logging](#logging)
+- [Uninstall](#uninstall)
+- [Notes](#notes)
 
 ## Current Shape
 
