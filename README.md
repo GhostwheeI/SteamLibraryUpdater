@@ -6,6 +6,7 @@
 PowerShell-based Steam library update management with a Windows taskbar tray menu, scheduled background checks, Apps & Features registration, and a clean uninstall path.
 
 ## Table of Contents
+- [Quick Install & Uninstall](#quick-install--uninstall)
 - [Current Shape](#current-shape)
 - [Requirements](#requirements)
 - [Install](#install)
@@ -17,6 +18,21 @@ PowerShell-based Steam library update management with a Windows taskbar tray men
 - [Logging](#logging)
 - [Uninstall](#uninstall)
 - [Notes](#notes)
+
+
+## Quick Install & Uninstall
+
+**Install:**
+Run PowerShell as Administrator:
+```powershell
+.\Install-SteamLibraryUpdater.ps1
+```
+
+**Uninstall:**
+Use Windows Settings > Apps > Installed apps, or run PowerShell as Administrator:
+```powershell
+C:\Program Files\Steam-Update-Manager\Uninstall-SteamLibraryUpdater.ps1
+```
 
 ## Current Shape
 
