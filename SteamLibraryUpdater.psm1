@@ -9,7 +9,7 @@
 
 # Module configuration
 $script:AppName = "Steam Update Manager"
-$script:AppVersion = "2.0.1"
+$script:AppVersion = "2.1.0"
 $script:ProductFolder = "Steam-Update-Manager"
 $script:DataRoot = if ($env:ProgramData) {
     Join-Path $env:ProgramData $script:ProductFolder

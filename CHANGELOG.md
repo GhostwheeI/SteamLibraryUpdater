@@ -4,6 +4,25 @@ All notable changes to Steam Update Manager will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.0] - 2026-06-30
+
+### Added
+- Added Quick Install & Uninstall section to `README.md`.
+- Added installed game monitoring functionality directly to the tray UI.
+- Added comprehensive Pester test suites for all PowerShell modules.
+
+### Fixed
+- Fixed duplicate variables and parameter calls in `Start-SteamLibraryUpdate`.
+- Fixed missing `$AppInfoData` parameter declaration in `Test-GameNeedsUpdate`.
+- Fixed a parsing error in `Steam-Update-Manager.ps1` where `Get-WindowsPowerShellPath` was partially pasted and broken.
+- Removed an orphaned/broken `try-catch` block inside `Steam-Update-Manager.ps1`.
+- Removed undefined `-AppInfoData` parameters and duplicated `$gameAppInfo` initializations in `SteamLibraryUpdater.psm1`.
+
+### Changed
+- Extracted Steam API pre-fetch to run outside of the update loop, correctly feeding cache data to `Test-GameNeedsUpdate`.
+- Updated `EXAMPLES.md` and `QUICKSTART.md` to point to the correct log directory (`C:\ProgramData\Steam-Update-Manager\Logs`) and use the correct log prefix (`SteamUpdateManager_`).
+- Enhanced `README.md` with CI/CD badges and a Table of Contents for professional release.
+
 ## [2.0.1] - 2026-05-06
 
 ### Fixed

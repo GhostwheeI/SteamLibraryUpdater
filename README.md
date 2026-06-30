@@ -141,7 +141,7 @@ Default configuration:
 ```json
 {
   "AppName": "Steam Update Manager",
-  "AppVersion": "2.0.1",
+  "AppVersion": "2.1.0",
   "Theme": "Auto",
   "StartWithWindows": true,
   "ShowTaskbarIcon": false,
